@@ -33,3 +33,36 @@ int32_t Memtable::write_to_log(const std::string& key, const std::string& value)
 
     return 0;
 }
+
+void Memtable::serialize_uint(char (&buf)[4], uint32_t val) {
+    uint32_t uval = val;
+    buf[0] = uval;
+    buf[1] = uval >> 8;
+    buf[2] = uval >> 16;
+    buf[3] = uval >> 24;
+}
+
+uint32_t Memtable::parse_uint(const char (&buf)[4]) {
+    uint32_t u0 = buf[0], u1 = buf[1], u2 = buf[2], u3 = buf[3];
+    uint32_t uval = u0 | (u1 << 8) | (u2 << 16) | (u3 << 24);
+    return uval;
+}
+
+std::vector<std::byte> Memtable::to_bytes(const std::string &key, const std::string &value) {
+    // each byte is separated by a 0-byte
+    std::vector<std::byte> res(1, (std::byte)0);
+
+    // get the key and value lengths as bytes.
+    char key_buffer[4];
+    char val_buffer[4];
+
+    serialize_uint(reinterpret_cast<char (&)[4]>(key_buffer), (uint32_t)key.size());
+    serialize_uint(reinterpret_cast<char (&)[4]>(val_buffer), (uint32_t)value.size());
+
+    for (auto& b : key)
+        res.push_back((std::byte)b);
+    for (auto& b : value)
+        res.push_back((std::byte)b);
+
+    return res;
+}
