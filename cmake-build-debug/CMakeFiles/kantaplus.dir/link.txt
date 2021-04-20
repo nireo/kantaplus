@@ -1,0 +1,1 @@
+/usr/bin/c++  -g   CMakeFiles/kantaplus.dir/main.cpp.o  -o kantaplus 
