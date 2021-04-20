@@ -170,6 +170,33 @@ main.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/kantaplus.dir/build.make CMakeFiles/kantaplus.dir/main.cpp.s
 .PHONY : main.cpp.s
 
+memtable.o: memtable.cpp.o
+
+.PHONY : memtable.o
+
+# target to build an object file
+memtable.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/kantaplus.dir/build.make CMakeFiles/kantaplus.dir/memtable.cpp.o
+.PHONY : memtable.cpp.o
+
+memtable.i: memtable.cpp.i
+
+.PHONY : memtable.i
+
+# target to preprocess a source file
+memtable.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/kantaplus.dir/build.make CMakeFiles/kantaplus.dir/memtable.cpp.i
+.PHONY : memtable.cpp.i
+
+memtable.s: memtable.cpp.s
+
+.PHONY : memtable.s
+
+# target to generate assembly for a file
+memtable.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/kantaplus.dir/build.make CMakeFiles/kantaplus.dir/memtable.cpp.s
+.PHONY : memtable.cpp.s
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -182,6 +209,9 @@ help:
 	@echo "... main.o"
 	@echo "... main.i"
 	@echo "... main.s"
+	@echo "... memtable.o"
+	@echo "... memtable.i"
+	@echo "... memtable.s"
 .PHONY : help
 
 

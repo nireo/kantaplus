@@ -3,4 +3,4 @@ project(kantaplus)
 
 set(CMAKE_CXX_STANDARD 20)
 
-add_executable(kantaplus main.cpp)
+add_executable(kantaplus main.cpp memtable.cpp rbtree.hpp)

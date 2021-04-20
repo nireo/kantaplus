@@ -1,5 +1,6 @@
 file(REMOVE_RECURSE
   "CMakeFiles/kantaplus.dir/main.cpp.o"
+  "CMakeFiles/kantaplus.dir/memtable.cpp.o"
   "kantaplus"
   "kantaplus.pdb"
 )

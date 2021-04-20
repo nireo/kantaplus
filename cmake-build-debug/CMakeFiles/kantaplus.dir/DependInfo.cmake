@@ -5,6 +5,7 @@ set(CMAKE_DEPENDS_LANGUAGES
 # The set of files for implicit dependencies of each language:
 set(CMAKE_DEPENDS_CHECK_CXX
   "/home/eemil/dev/c++/kantaplus/main.cpp" "/home/eemil/dev/c++/kantaplus/cmake-build-debug/CMakeFiles/kantaplus.dir/main.cpp.o"
+  "/home/eemil/dev/c++/kantaplus/memtable.cpp" "/home/eemil/dev/c++/kantaplus/cmake-build-debug/CMakeFiles/kantaplus.dir/memtable.cpp.o"
   )
 set(CMAKE_CXX_COMPILER_ID "GNU")
 

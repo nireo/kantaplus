@@ -85,6 +85,15 @@
 		<Unit filename="/home/eemil/dev/c++/kantaplus/main.cpp">
 			<Option target="kantaplus"/>
 		</Unit>
+		<Unit filename="/home/eemil/dev/c++/kantaplus/memtable.cpp">
+			<Option target="kantaplus"/>
+		</Unit>
+		<Unit filename="/home/eemil/dev/c++/kantaplus/memtable.hpp">
+			<Option target="kantaplus"/>
+		</Unit>
+		<Unit filename="/home/eemil/dev/c++/kantaplus/rbtree.hpp">
+			<Option target="kantaplus"/>
+		</Unit>
 		<Unit filename="/home/eemil/dev/c++/kantaplus/CMakeLists.txt">
 			<Option virtualFolder="CMake Files\"/>
 		</Unit>
