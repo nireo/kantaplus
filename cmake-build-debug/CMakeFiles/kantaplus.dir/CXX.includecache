@@ -1,0 +1,34 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/eemil/dev/c++/kantaplus/main.cpp
+iostream
+-
+memtable.hpp
+/home/eemil/dev/c++/kantaplus/memtable.hpp
+
+/home/eemil/dev/c++/kantaplus/memtable.cpp
+memtable.hpp
+/home/eemil/dev/c++/kantaplus/memtable.hpp
+iostream
+-
+
+/home/eemil/dev/c++/kantaplus/memtable.hpp
+map
+-
+string
+-
+fstream
+-
+vector
+-
+rbtree.hpp
+/home/eemil/dev/c++/kantaplus/rbtree.hpp
+
+/home/eemil/dev/c++/kantaplus/rbtree.hpp
+
