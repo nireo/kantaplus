@@ -1,1 +1,0 @@
-/usr/bin/c++  -g   CMakeFiles/kantaplus.dir/main.cpp.o CMakeFiles/kantaplus.dir/memtable.cpp.o  -o kantaplus 

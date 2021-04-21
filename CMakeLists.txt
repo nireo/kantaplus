@@ -1,6 +1,0 @@
-cmake_minimum_required(VERSION 3.17)
-project(kantaplus)
-
-set(CMAKE_CXX_STANDARD 20)
-
-add_executable(kantaplus main.cpp memtable.cpp rbtree.hpp)

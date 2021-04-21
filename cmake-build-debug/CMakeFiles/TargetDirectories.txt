@@ -1,3 +1,0 @@
-/home/eemil/dev/c++/kantaplus/cmake-build-debug/CMakeFiles/rebuild_cache.dir
-/home/eemil/dev/c++/kantaplus/cmake-build-debug/CMakeFiles/edit_cache.dir
-/home/eemil/dev/c++/kantaplus/cmake-build-debug/CMakeFiles/kantaplus.dir
