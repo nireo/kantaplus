@@ -3,7 +3,6 @@
 //
 
 #include "memtable.hpp"
-#include <iostream>
 
 const std::string &Memtable::get_log_path() const {
     return log_path;
@@ -72,9 +71,6 @@ int Memtable::from_bytes(std::vector<unsigned char> &bytes, KVPair *pair) {
     auto key_length = Memtable::parse_uint(reinterpret_cast<unsigned char (&)[4]>(key_length_buffer));
     auto val_length = Memtable::parse_uint(reinterpret_cast<unsigned char (&)[4]>(val_length_buffer));
 
-    printf("key length: %d\n", key_length);
-    printf("value length: %d\n", val_length);
-
     std::vector<unsigned char> key = std::vector<unsigned char>(
             bytes.begin() + 9, bytes.begin()+9+key_length);
     std::vector<unsigned char> value = std::vector<unsigned char>(
@@ -83,8 +79,6 @@ int Memtable::from_bytes(std::vector<unsigned char> &bytes, KVPair *pair) {
 
     auto key_str = std::string(key.begin(), key.end());
     auto val_str = std::string(value.begin(), value.end());
-    std::cout << "key: " << key_str << "\n";
-    std::cout << "key: " << val_str << "\n";
 
     pair->key = key_str;
     pair->value = val_str;
