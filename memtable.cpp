@@ -25,6 +25,12 @@ void Memtable::put(const std::string &key, const std::string &value) {
 int32_t Memtable::write_to_log(const std::string& key, const std::string& value) const {
     std::ofstream ofs(log_path, std::ofstream::out | std::ofstream::binary);
 
+    auto data = to_bytes(KVPair{
+        .key=key,
+        .value=value,
+    });
+    ofs << std::string(data.begin(), data.end());
+
     ofs.close();
     if (!ofs) {
         return 1;
@@ -108,5 +114,58 @@ std::vector<unsigned char> Memtable::to_bytes(const KVPair &pair) {
         res.push_back((unsigned char)b);
 
     return res;
+}
+
+void Memtable::read_entries_from_log() {
+    std::ifstream in;
+    in.open(log_path);
+    std::vector<unsigned char> bytes(
+            (std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+
+    int64_t pos = 0;
+    for (;;) {
+        if (bytes.size() - pos < 0)
+            break;
+
+        unsigned char key_length_buffer[4];
+        for (int i = pos+1; i <= pos+4; ++i)
+            key_length_buffer[i-1] = bytes[i];
+
+        unsigned char val_length_buffer[4];
+        for (int i = pos+5; i < pos+9; ++i)
+            val_length_buffer[i-5] = bytes[i];
+
+        auto key_length = Memtable::parse_uint(reinterpret_cast<unsigned char (&)[4]>(key_length_buffer));
+        auto val_length = Memtable::parse_uint(reinterpret_cast<unsigned char (&)[4]>(val_length_buffer));
+
+        std::vector<unsigned char> key = std::vector<unsigned char>(
+                bytes.begin() + 9 + pos, bytes.begin()+9+key_length+pos);
+        std::vector<unsigned char> value = std::vector<unsigned char>(
+                bytes.begin() + 9 + key_length+pos, bytes.begin()+9+key_length+val_length+pos);
+
+
+        auto key_str = std::string(key.begin(), key.end());
+        auto val_str = std::string(value.begin(), value.end());
+
+        this->kvs[key_str] = val_str;
+        pos += 9 + key_length + val_length;
+    }
+}
+
+Memtable::Memtable() {
+    // get the name for the file as a timestamp
+    auto timestamp = std::chrono::duration_cast<std::chrono::microseconds>
+            (std::chrono::system_clock::now().time_since_epoch()).count();
+    log_path = std::to_string(timestamp) + ".log";
+
+    // we use the ofstream to write to the file, which creates the file
+    // if it doesn't exist, so we don't need to worry about that.
+    kvs = std::map<std::string, std::string>();
+    size = 0;
+}
+
+Memtable::Memtable(const std::string& path) {
+    log_path = path;
+    read_entries_from_log();
 }
 

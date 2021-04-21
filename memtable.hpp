@@ -9,6 +9,7 @@
 #include <string>
 #include <fstream>
 #include <vector>
+#include <chrono>
 #include "rbtree.hpp"
 
 // Memtable represents values held in memory before written
@@ -19,12 +20,18 @@ public:
     [[nodiscard]] int32_t write_to_log(const std::string& key, const std::string& value) const;
     [[nodiscard]] const std::string& get(const std::string& key) const;
 
-    static void serialize_uint(unsigned char (&buf)[4], uint32_t val) ;
+    static void serialize_uint(unsigned char (&buf)[4], uint32_t val);
     static uint32_t parse_uint(unsigned char (&buf)[4]);
     static std::vector<unsigned char> to_bytes(const KVPair& value);
 
     void put(const std::string& key, const std::string& value);
     static int from_bytes(std::vector<unsigned char> &bytes, KVPair *entry);
+
+    void read_entries_from_log();
+
+    Memtable();
+
+    [[maybe_unused]] explicit Memtable(const std::string& path);
 private:
     // TODO: implement a rb tree
     std::map<std::string, std::string> kvs;
