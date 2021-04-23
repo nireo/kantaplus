@@ -1,20 +1,20 @@
-Start testing: Apr 23 15:54 EEST
+Start testing: Apr 23 16:22 EEST
 ----------------------------------------------------------
-1/1 Testing: HelloTest.BasicAssertions
-1/1 Test: HelloTest.BasicAssertions
-Command: "/home/eemil/dev/c++/kantaplus/build/tests" "--gtest_filter=HelloTest.BasicAssertions" "--gtest_also_run_disabled_tests"
+1/3 Testing: MemtableTest.BasicOperations
+1/3 Test: MemtableTest.BasicOperations
+Command: "/home/eemil/dev/c++/kantaplus/build/tests" "--gtest_filter=MemtableTest.BasicOperations" "--gtest_also_run_disabled_tests"
 Directory: /home/eemil/dev/c++/kantaplus/build
-"HelloTest.BasicAssertions" start time: Apr 23 15:54 EEST
+"MemtableTest.BasicOperations" start time: Apr 23 16:22 EEST
 Output:
 ----------------------------------------------------------
 Running main() from /home/eemil/dev/c++/kantaplus/build/_deps/googletest-src/googletest/src/gtest_main.cc
-Note: Google Test filter = HelloTest.BasicAssertions
+Note: Google Test filter = MemtableTest.BasicOperations
 [==========] Running 1 test from 1 test suite.
 [----------] Global test environment set-up.
-[----------] 1 test from HelloTest
-[ RUN      ] HelloTest.BasicAssertions
-[       OK ] HelloTest.BasicAssertions (0 ms)
-[----------] 1 test from HelloTest (0 ms total)
+[----------] 1 test from MemtableTest
+[ RUN      ] MemtableTest.BasicOperations
+[       OK ] MemtableTest.BasicOperations (0 ms)
+[----------] 1 test from MemtableTest (0 ms total)
 
 [----------] Global test environment tear-down
 [==========] 1 test from 1 test suite ran. (0 ms total)
@@ -23,8 +23,62 @@ Note: Google Test filter = HelloTest.BasicAssertions
 Test time =   0.00 sec
 ----------------------------------------------------------
 Test Passed.
-"HelloTest.BasicAssertions" end time: Apr 23 15:54 EEST
-"HelloTest.BasicAssertions" time elapsed: 00:00:00
+"MemtableTest.BasicOperations" end time: Apr 23 16:22 EEST
+"MemtableTest.BasicOperations" time elapsed: 00:00:00
 ----------------------------------------------------------
 
-End testing: Apr 23 15:54 EEST
+2/3 Testing: MemtableTest.LogFile
+2/3 Test: MemtableTest.LogFile
+Command: "/home/eemil/dev/c++/kantaplus/build/tests" "--gtest_filter=MemtableTest.LogFile" "--gtest_also_run_disabled_tests"
+Directory: /home/eemil/dev/c++/kantaplus/build
+"MemtableTest.LogFile" start time: Apr 23 16:22 EEST
+Output:
+----------------------------------------------------------
+Running main() from /home/eemil/dev/c++/kantaplus/build/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = MemtableTest.LogFile
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from MemtableTest
+[ RUN      ] MemtableTest.LogFile
+[       OK ] MemtableTest.LogFile (0 ms)
+[----------] 1 test from MemtableTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (0 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"MemtableTest.LogFile" end time: Apr 23 16:22 EEST
+"MemtableTest.LogFile" time elapsed: 00:00:00
+----------------------------------------------------------
+
+3/3 Testing: MemtableTest.ByteConversions
+3/3 Test: MemtableTest.ByteConversions
+Command: "/home/eemil/dev/c++/kantaplus/build/tests" "--gtest_filter=MemtableTest.ByteConversions" "--gtest_also_run_disabled_tests"
+Directory: /home/eemil/dev/c++/kantaplus/build
+"MemtableTest.ByteConversions" start time: Apr 23 16:22 EEST
+Output:
+----------------------------------------------------------
+Running main() from /home/eemil/dev/c++/kantaplus/build/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = MemtableTest.ByteConversions
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from MemtableTest
+[ RUN      ] MemtableTest.ByteConversions
+[       OK ] MemtableTest.ByteConversions (0 ms)
+[----------] 1 test from MemtableTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (0 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"MemtableTest.ByteConversions" end time: Apr 23 16:22 EEST
+"MemtableTest.ByteConversions" time elapsed: 00:00:00
+----------------------------------------------------------
+
+End testing: Apr 23 16:22 EEST

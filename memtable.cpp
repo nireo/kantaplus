@@ -10,22 +10,15 @@ const std::string &Memtable::get_log_path() const {
 }
 
 std::string Memtable::get(const std::string &key) const {
-  try {
-    std::string val = this->kvs.at(key);
-    return val;
-  } catch (const std::out_of_range&) {
-    // value doesn't exist on map
-    return "";
-  }
+  auto val = this->kvs.find(key);
+  if (val != this->kvs.end())
+    return val->second;
+  return "";
 }
 
 void Memtable::put(const std::string &key, const std::string &value) {
     int ok = write_to_log(key, value);
-    if (ok) {
-        kvs[key] = value;
-    } else {
-        perror("could not write to log file");
-    }
+    this->kvs[key] = value;
 }
 
 int32_t Memtable::write_to_log(const std::string& key, const std::string& value) const {
@@ -158,6 +151,9 @@ Memtable::Memtable() {
     auto timestamp = std::chrono::duration_cast<std::chrono::microseconds>
             (std::chrono::system_clock::now().time_since_epoch()).count();
     log_path = std::to_string(timestamp) + ".log";
+
+    std::ofstream ofs(log_path);
+    ofs.close();
 
     // we use the ofstream to write to the file, which creates the file
     // if it doesn't exist, so we don't need to worry about that.
