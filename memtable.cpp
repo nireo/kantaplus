@@ -3,13 +3,20 @@
 //
 
 #include "memtable.hpp"
+#include <stdexcept>
 
 const std::string &Memtable::get_log_path() const {
     return log_path;
 }
 
-const std::string& Memtable::get(const std::string &key) const {
-    return kvs.at(key);
+std::string Memtable::get(const std::string &key) const {
+  try {
+    std::string val = this->kvs.at(key);
+    return val;
+  } catch (const std::out_of_range&) {
+    // value doesn't exist on map
+    return "";
+  }
 }
 
 void Memtable::put(const std::string &key, const std::string &value) {

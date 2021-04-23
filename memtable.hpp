@@ -18,7 +18,7 @@ class Memtable {
 public:
     [[nodiscard]] const std::string& get_log_path() const;
     [[nodiscard]] int32_t write_to_log(const std::string& key, const std::string& value) const;
-    [[nodiscard]] const std::string& get(const std::string& key) const;
+  [[nodiscard]] std::string get(const std::string& key) const;
 
     static void serialize_uint(unsigned char (&buf)[4], uint32_t val);
     static uint32_t parse_uint(unsigned char (&buf)[4]);
@@ -37,7 +37,6 @@ private:
     std::map<std::string, std::string> kvs;
     std::string log_path;
     int64_t size;
-
 };
 
 
