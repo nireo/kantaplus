@@ -1,5 +1,0 @@
-HelloTest.BasicAssertions 1 0.00161993
-MemtableTest.BasicOperations 7 0.000261791
-MemtableTest.LogFile 3 0.00067241
-MemtableTest.ByteConversions 1 0.00176184
----

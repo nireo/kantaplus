@@ -1,7 +1,0 @@
-add_test( MemtableTest.BasicOperations [==[/home/eemil/dev/c++/kantaplus/build/tests]==] [==[--gtest_filter=MemtableTest.BasicOperations]==] --gtest_also_run_disabled_tests)
-set_tests_properties( MemtableTest.BasicOperations PROPERTIES WORKING_DIRECTORY [==[/home/eemil/dev/c++/kantaplus/build]==] SKIP_REGULAR_EXPRESSION [==[\[  SKIPPED \]]==])
-add_test( MemtableTest.LogFile [==[/home/eemil/dev/c++/kantaplus/build/tests]==] [==[--gtest_filter=MemtableTest.LogFile]==] --gtest_also_run_disabled_tests)
-set_tests_properties( MemtableTest.LogFile PROPERTIES WORKING_DIRECTORY [==[/home/eemil/dev/c++/kantaplus/build]==] SKIP_REGULAR_EXPRESSION [==[\[  SKIPPED \]]==])
-add_test( MemtableTest.ByteConversions [==[/home/eemil/dev/c++/kantaplus/build/tests]==] [==[--gtest_filter=MemtableTest.ByteConversions]==] --gtest_also_run_disabled_tests)
-set_tests_properties( MemtableTest.ByteConversions PROPERTIES WORKING_DIRECTORY [==[/home/eemil/dev/c++/kantaplus/build]==] SKIP_REGULAR_EXPRESSION [==[\[  SKIPPED \]]==])
-set( tests_TESTS MemtableTest.BasicOperations MemtableTest.LogFile MemtableTest.ByteConversions)

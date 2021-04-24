@@ -3,6 +3,7 @@
 //
 
 #include "memtable.hpp"
+#include <bits/stdint-intn.h>
 #include <stdexcept>
 
 const std::string &Memtable::get_log_path() const { return log_path; }
@@ -10,28 +11,32 @@ const std::string &Memtable::get_log_path() const { return log_path; }
 std::string Memtable::get(const std::string &key) const {
   auto val = this->kvs.find(key);
   if (val != this->kvs.end())
-    return val->second;
+	return val->second;
   return "";
 }
 
 void Memtable::put(const std::string &key, const std::string &value) {
   int ok = write_to_log(key, value);
   this->kvs[key] = value;
+
+  // so the size of the memtable consists of the first 9 bytes, containing the value
+  // separator and the key and value lengths.
+  this->size += 9 + static_cast<int64_t>(key.length()) + static_cast<int64_t>(value.length());
 }
 
 int32_t Memtable::write_to_log(const std::string &key,
-                               const std::string &value) const {
+							   const std::string &value) const {
   std::ofstream ofs(log_path, std::ofstream::out | std::ofstream::binary);
 
   auto data = to_bytes(KVPair{
-      .key = key,
-      .value = value,
+	  .key = key,
+	  .value = value,
   });
   ofs << std::string(data.begin(), data.end());
 
   ofs.close();
   if (!ofs) {
-    return 1;
+	return 1;
   }
 
   return 0;
@@ -55,28 +60,28 @@ int Memtable::from_bytes(std::vector<unsigned char> &bytes, KVPair *pair) {
   // the values are separated by one 0-byte byte and it has to 4-byte long
   // integer values, meaning that the length needs to be at least 9.
   if (bytes.size() < 9) {
-    return 1;
+	return 1;
   }
 
   // construct buffers to get the key and value sizes
   unsigned char key_length_buffer[4];
   for (int i = 1; i <= 4; ++i)
-    key_length_buffer[i - 1] = bytes[i];
+	key_length_buffer[i - 1] = bytes[i];
 
   unsigned char val_length_buffer[4];
   for (int i = 5; i < 9; ++i)
-    val_length_buffer[i - 5] = bytes[i];
+	val_length_buffer[i - 5] = bytes[i];
 
   auto key_length = Memtable::parse_uint(
-      reinterpret_cast<unsigned char(&)[4]>(key_length_buffer));
+	  reinterpret_cast<unsigned char(&)[4]>(key_length_buffer));
   auto val_length = Memtable::parse_uint(
-      reinterpret_cast<unsigned char(&)[4]>(val_length_buffer));
+	  reinterpret_cast<unsigned char(&)[4]>(val_length_buffer));
 
   std::vector<unsigned char> key = std::vector<unsigned char>(
-      bytes.begin() + 9, bytes.begin() + 9 + key_length);
+	  bytes.begin() + 9, bytes.begin() + 9 + key_length);
   std::vector<unsigned char> value =
-      std::vector<unsigned char>(bytes.begin() + 9 + key_length,
-                                 bytes.begin() + 9 + key_length + val_length);
+	  std::vector<unsigned char>(bytes.begin() + 9 + key_length,
+								 bytes.begin() + 9 + key_length + val_length);
 
   auto key_str = std::string(key.begin(), key.end());
   auto val_str = std::string(value.begin(), value.end());
@@ -96,17 +101,17 @@ std::vector<unsigned char> Memtable::to_bytes(const KVPair &pair) {
   char val_buffer[4];
 
   serialize_uint(reinterpret_cast<unsigned char(&)[4]>(key_buffer),
-                 (uint32_t)pair.key.size());
+				 (uint32_t)pair.key.size());
   serialize_uint(reinterpret_cast<unsigned char(&)[4]>(val_buffer),
-                 (uint32_t)pair.value.size());
+				 (uint32_t)pair.value.size());
 
   res.insert(res.end(), key_buffer, key_buffer + 4);
   res.insert(res.end(), val_buffer, val_buffer + 4);
 
   for (auto &b : pair.key)
-    res.push_back((unsigned char)b);
+	res.push_back((unsigned char)b);
   for (auto &b : pair.value)
-    res.push_back((unsigned char)b);
+	res.push_back((unsigned char)b);
 
   return res;
 }
@@ -115,45 +120,45 @@ void Memtable::read_entries_from_log() {
   std::ifstream in;
   in.open(log_path);
   std::vector<unsigned char> bytes((std::istreambuf_iterator<char>(in)),
-                                   std::istreambuf_iterator<char>());
+								   std::istreambuf_iterator<char>());
 
   int64_t pos = 0;
   for (;;) {
-    if (bytes.size() - pos < 0)
-      break;
+	if (bytes.size() - pos < 0)
+	  break;
 
-    unsigned char key_length_buffer[4];
-    for (int i = pos + 1; i <= pos + 4; ++i)
-      key_length_buffer[i - 1] = bytes[i];
+	unsigned char key_length_buffer[4];
+	for (int i = pos + 1; i <= pos + 4; ++i)
+	  key_length_buffer[i - 1] = bytes[i];
 
-    unsigned char val_length_buffer[4];
-    for (int i = pos + 5; i < pos + 9; ++i)
-      val_length_buffer[i - 5] = bytes[i];
+	unsigned char val_length_buffer[4];
+	for (int i = pos + 5; i < pos + 9; ++i)
+	  val_length_buffer[i - 5] = bytes[i];
 
-    auto key_length = Memtable::parse_uint(
-        reinterpret_cast<unsigned char(&)[4]>(key_length_buffer));
-    auto val_length = Memtable::parse_uint(
-        reinterpret_cast<unsigned char(&)[4]>(val_length_buffer));
+	auto key_length = Memtable::parse_uint(
+		reinterpret_cast<unsigned char(&)[4]>(key_length_buffer));
+	auto val_length = Memtable::parse_uint(
+		reinterpret_cast<unsigned char(&)[4]>(val_length_buffer));
 
-    std::vector<unsigned char> key = std::vector<unsigned char>(
-        bytes.begin() + 9 + pos, bytes.begin() + 9 + key_length + pos);
-    std::vector<unsigned char> value = std::vector<unsigned char>(
-        bytes.begin() + 9 + key_length + pos,
-        bytes.begin() + 9 + key_length + val_length + pos);
+	std::vector<unsigned char> key = std::vector<unsigned char>(
+		bytes.begin() + 9 + pos, bytes.begin() + 9 + key_length + pos);
+	std::vector<unsigned char> value = std::vector<unsigned char>(
+		bytes.begin() + 9 + key_length + pos,
+		bytes.begin() + 9 + key_length + val_length + pos);
 
-    auto key_str = std::string(key.begin(), key.end());
-    auto val_str = std::string(value.begin(), value.end());
+	auto key_str = std::string(key.begin(), key.end());
+	auto val_str = std::string(value.begin(), value.end());
 
-    this->kvs[key_str] = val_str;
-    pos += 9 + key_length + val_length;
+	this->kvs[key_str] = val_str;
+	pos += 9 + key_length + val_length;
   }
 }
 
 Memtable::Memtable() {
   // get the name for the file as a timestamp
   auto timestamp = std::chrono::duration_cast<std::chrono::microseconds>(
-                       std::chrono::system_clock::now().time_since_epoch())
-                       .count();
+					   std::chrono::system_clock::now().time_since_epoch())
+					   .count();
   log_path = std::to_string(timestamp) + ".log";
 
   std::ofstream ofs(log_path);

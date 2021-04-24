@@ -5,6 +5,8 @@
 #ifndef KANTAPLUS_RBTREE_HPP
 #define KANTAPLUS_RBTREE_HPP
 
+#include <string>
+
 struct KVPair {
     std::string key;
     std::string value;

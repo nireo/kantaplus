@@ -3,6 +3,7 @@
 
 #include "memtable.hpp"
 #include "sstable.hpp"
+#include <bits/stdint-intn.h>
 #include <string>
 #include <vector>
 #include <mutex>
@@ -18,7 +19,10 @@ public:
   void write_flush_queue();
   void flush_current_memtable();
 
+	void set_maximum_size(int64_t new_size);
+
   void start();
+	int32_t get_flush_queue_size() const;
 
   // using the default directory of './kantaplus'
   DB();
@@ -35,6 +39,8 @@ private:
   std::mutex m_memtable_mutex;
   Memtable m_memtable;
   std::string m_directory;
+
+	int64_t m_maximum_size;
 
   // a identifier indicating if the database has been setup successfully.
   bool m_ok;
