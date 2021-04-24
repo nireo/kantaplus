@@ -1,6 +1,7 @@
 #include "db.hpp"
 #include "sstable.hpp"
 #include <bits/stdint-intn.h>
+#include <cstdio>
 #include <iostream>
 #include <sys/stat.h>
 #include <thread>
@@ -210,9 +211,47 @@ void DB::merge_file(const std::string &file1, const std::string &file2) {
 	copy_file(full_path2, full_path2+".tmp");
 	m_ss_mutex.unlock();
 
-	auto to_compact = std::vector<std::string>{full_path1+".tmp", full_path2+".tmp"};
 	std::map<std::string, std::string> values;
-	for (auto& filename : to_compact) {
 
+	auto f1_vals = SSTable::get_all_values(file1);
+	auto f2_vals = SSTable::get_all_values(file2);
+
+	// this function assumes that file1 is the more recent one
+	for (auto& entry : f2_vals) {
+		if (entry.value == "\00")
+			continue;
+
+		values[entry.key] = entry.value;
 	}
+
+	for (auto& entry : f1_vals) {
+		if (entry.value == "\00")
+			continue;
+
+		values[entry.key] = entry.value;
+	}
+
+	std::ofstream ofs(full_path1+".tmpf", std::ofstream::out | std::ofstream::binary);
+	for (auto &[key, value] : values) {
+		const KVPair pair{key, value};
+
+		auto as_bytes = Memtable::to_bytes(pair);
+		std::copy(as_bytes.cbegin(), as_bytes.cend(),
+							std::ostreambuf_iterator<char>(ofs));
+	}
+
+	ofs.close();
+	if (!ofs) {
+		std::cout << "error while writing to file" << std::endl;
+	}
+	auto f2_index = get_sstable_index(file2);
+	m_ss_mutex.lock();
+	remove(full_path1.c_str());
+	remove(full_path2.c_str());
+
+	m_sstables.erase(m_sstables.begin() + f2_index);
+
+	copy_file(full_path1+".tmpf", full_path1);
+
+	m_ss_mutex.unlock();
 }

@@ -24,6 +24,7 @@ public:
 	SSTable();
 	SSTable(const std::string &directory);
 
+	static std::vector<KVPair> get_all_values(const std::string &path);
 private:
 	// TODO: add a bloom filter and a sparse index
 	std::string filename;
@@ -36,11 +37,11 @@ public:
 	void next();
 	KVPair *get_current_pair() const;
 
-	SSTableScanner();
+	SSTableScanner(const std::string& filename);
 private:
 	std::string m_filename;
-	int64_t pos;
-	KVPair *current;
+	int64_t m_pos;
+	KVPair *m_current;
 };
 
 #endif // KANTAPLUS_SSTABLE_HPP
