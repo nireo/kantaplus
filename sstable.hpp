@@ -5,25 +5,26 @@
 #ifndef KANTAPLUS_SSTABLE_HPP
 #define KANTAPLUS_SSTABLE_HPP
 
-#include <string>
+#include "memtable.hpp"
+#include "rbtree.hpp"
 #include <chrono>
-#include <map>
 #include <fstream>
 #include <iostream>
-#include "rbtree.hpp"
-#include "memtable.hpp"
+#include <map>
+#include <string>
 
 class SSTable {
 public:
-    // write_map takes in the value map from the memtable and then writen that value
-    // to disk.
-    void write_map(std::map<std::string, std::string> &mp) const;
-    std::string get(const std::string& key) const;
-    SSTable();
+	// write_map takes in the value map from the memtable and then writen that
+	// value to disk.
+	void write_map(std::map<std::string, std::string> &mp) const;
+	std::string get(const std::string &key) const;
+	SSTable();
+	SSTable(const std::string &directory);
+
 private:
-    // TODO: add a bloom filter and a sparse index
-    std::string filename;
+	// TODO: add a bloom filter and a sparse index
+	std::string filename;
 };
 
-
-#endif //KANTAPLUS_SSTABLE_HPP
+#endif // KANTAPLUS_SSTABLE_HPP
