@@ -9,19 +9,19 @@
 const std::string &Memtable::get_log_path() const { return log_path; }
 
 std::string Memtable::get(const std::string &key) const {
-	auto val = this->kvs.find(key);
-	if (val != this->kvs.end())
+	auto val = kvs.find(key);
+	if (val != kvs.end())
 		return val->second;
 	return "";
 }
 
 void Memtable::put(const std::string &key, const std::string &value) {
 	int ok = write_to_log(key, value);
-	this->kvs[key] = value;
+	kvs[key] = value;
 
 	// so the size of the memtable consists of the first 9 bytes, containing the
 	// value separator and the key and value lengths.
-	this->size += 9 + static_cast<int64_t>(key.length()) +
+	size += 9 + static_cast<int64_t>(key.length()) +
 								static_cast<int64_t>(value.length());
 }
 
@@ -151,7 +151,7 @@ void Memtable::read_entries_from_log() {
 		auto key_str = std::string(key.begin(), key.end());
 		auto val_str = std::string(value.begin(), value.end());
 
-		this->kvs[key_str] = val_str;
+		kvs[key_str] = val_str;
 		pos += 9 + key_length + val_length;
 		size += (int64_t)(9 + key_length + val_length);
 	}
@@ -194,6 +194,6 @@ Memtable::Memtable(const std::string &directory) {
 	size = 0;
 }
 
-int64_t Memtable::get_size() const { return this->size; }
+int64_t Memtable::get_size() const { return size; }
 
-std::map<std::string, std::string> &Memtable::get_keymap() { return this->kvs; }
+std::map<std::string, std::string> &Memtable::get_keymap() { return kvs; }
