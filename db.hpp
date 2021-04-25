@@ -48,9 +48,12 @@ private:
 	void copy_file(const std::string &src, const std::string &dst);
 	void merge_file(const std::string &file1, const std::string &file2);
 
-			// write the contents of the memtable flush queue into sstables
-			void write_flush_queue();
+	// write the contents of the memtable flush queue into sstables
+	void write_flush_queue();
 	void flush_current_memtable();
+
+	// find all the persistent log files and the sstables.
+	void parse_directory();
 };
 
 #endif // KANTAPLUS_DB_HPP

@@ -2,10 +2,12 @@
 #include "sstable.hpp"
 #include <bits/stdint-intn.h>
 #include <cstdio>
+#include <dirent.h>
 #include <iostream>
 #include <sys/stat.h>
 #include <thread>
 #include <unistd.h>
+#include <string.h>
 
 // DB(str) creates a database instance given a certain directory for log files
 DB::DB(const std::string &directory) {
@@ -82,8 +84,7 @@ void DB::write_flush_queue() {
 		m_flush_mutex.lock();
 
 		// create sstables for the oldest entries in the queue
-		for (auto it = m_flush_queue.rbegin();
-				 it != m_flush_queue.rend(); ++it) {
+		for (auto it = m_flush_queue.rbegin(); it != m_flush_queue.rend(); ++it) {
 			// create new sstable
 			auto sstable = SSTable(m_directory);
 			sstable.write_map(it->get_keymap());
@@ -150,12 +151,16 @@ void DB::start() {
 	std::thread flush_thread([this] { write_flush_queue(); });
 }
 
+// set_maximum_size sets maximum size of memtable in bytes
 void DB::set_maximum_size(int64_t new_size) { m_maximum_size = new_size; }
 
+// get_flush_queue_size returns the current size of the flush queue
 int32_t DB::get_flush_queue_size() const {
 	return (int32_t)m_flush_queue.size();
 }
 
+// get_sstable_index loops over the sstables and returns the index of the
+// sstable with the given filename.
 int32_t DB::get_sstable_index(const std::string &filename) const {
 	for (int i = 0; i < (int)m_sstables.size(); ++i)
 		if (m_sstables[i].get_filename() == filename)
@@ -175,8 +180,7 @@ void DB::graceful_shutdown() {
 	m_flush_mutex.lock();
 
 	// create sstables for the oldest entries in the queue
-	for (auto it = m_flush_queue.rbegin(); it != m_flush_queue.rend();
-			 ++it) {
+	for (auto it = m_flush_queue.rbegin(); it != m_flush_queue.rend(); ++it) {
 		// create new sstable
 		auto sstable = SSTable(m_directory);
 		sstable.write_map(it->get_keymap());
@@ -189,6 +193,7 @@ void DB::graceful_shutdown() {
 	m_flush_mutex.unlock();
 }
 
+// copy_file copies a file from src path to the dst path
 void DB::copy_file(const std::string &src, const std::string &dst) {
 	std::ifstream src_file;
 	std::ofstream dst_file;
@@ -201,14 +206,16 @@ void DB::copy_file(const std::string &src, const std::string &dst) {
 	dst_file.close();
 }
 
+// merge_file takes in two sstables as merges the values in them to form a single sstable
 void DB::merge_file(const std::string &file1, const std::string &file2) {
 	auto full_path1 = m_directory + "/" + file1;
 	auto full_path2 = m_directory + "/" + file2;
 
-	// copy the files such that we can get values from the database whilst they're merging
+	// copy the files such that we can get values from the database whilst they're
+	// merging
 	m_ss_mutex.lock();
-	copy_file(full_path1, full_path1+".tmp");
-	copy_file(full_path2, full_path2+".tmp");
+	copy_file(full_path1, full_path1 + ".tmp");
+	copy_file(full_path2, full_path2 + ".tmp");
 	m_ss_mutex.unlock();
 
 	std::map<std::string, std::string> values;
@@ -217,21 +224,22 @@ void DB::merge_file(const std::string &file1, const std::string &file2) {
 	auto f2_vals = SSTable::get_all_values(file2);
 
 	// this function assumes that file1 is the more recent one
-	for (auto& entry : f2_vals) {
+	for (auto &entry : f2_vals) {
 		if (entry.value == "\00")
 			continue;
 
 		values[entry.key] = entry.value;
 	}
 
-	for (auto& entry : f1_vals) {
+	for (auto &entry : f1_vals) {
 		if (entry.value == "\00")
 			continue;
 
 		values[entry.key] = entry.value;
 	}
 
-	std::ofstream ofs(full_path1+".tmpf", std::ofstream::out | std::ofstream::binary);
+	std::ofstream ofs(full_path1 + ".tmpf",
+										std::ofstream::out | std::ofstream::binary);
 	for (auto &[key, value] : values) {
 		const KVPair pair{key, value};
 
@@ -251,7 +259,39 @@ void DB::merge_file(const std::string &file1, const std::string &file2) {
 
 	m_sstables.erase(m_sstables.begin() + f2_index);
 
-	copy_file(full_path1+".tmpf", full_path1);
-
+	copy_file(full_path1 + ".tmpf", full_path1);
 	m_ss_mutex.unlock();
+}
+
+// has_extension checks if str has a given suffix
+bool has_extension(const char *str, const char *suffix)
+{
+		if (!str || !suffix)
+				return false;
+
+		size_t lenstr = strlen(str);
+		size_t lensuffix = strlen(suffix);
+
+		if (lensuffix >  lenstr)
+				return false;
+		return strncmp(str + lenstr - lensuffix, suffix, lensuffix) == 0;
+}
+
+// parse_directory takes care of parsing existing files in the directory.
+void DB::parse_directory() {
+	DIR *dir;
+	struct dirent *diread;
+
+
+	if ((dir = opendir("/")) != nullptr) {
+		while ((diread = readdir(dir)) != nullptr) {
+			// check if file is sstable.
+			if (has_extension(diread->d_name, ".ss")) {
+				m_sstables.push_back(SSTable(m_directory, diread->d_name));
+			} else if (has_extension(diread->d_name, ".log")) {
+				m_flush_queue.push_back(Memtable(m_directory, diread->d_name));
+			}
+		}
+		closedir(dir);
+	}
 }

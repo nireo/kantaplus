@@ -125,6 +125,10 @@ SSTable::SSTable(const std::string &directory) {
 	filename = directory + "/" + std::to_string(timestamp) + ".ss";
 }
 
+SSTable::SSTable(const std::string &directory, const std::string &fname) {
+	filename = directory + "/" + fname;
+}
+
 std::string SSTable::get_filename() const { return filename; }
 
 SSTableScanner::SSTableScanner(const std::string &filename) {

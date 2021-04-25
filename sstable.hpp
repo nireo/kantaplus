@@ -24,6 +24,9 @@ public:
 	SSTable();
 	SSTable(const std::string &directory);
 
+	// index a existing sstable
+	SSTable(const std::string &directory, const std::string &filename);
+
 	static std::vector<KVPair> get_all_values(const std::string &path);
 private:
 	// TODO: add a bloom filter and a sparse index
