@@ -4,10 +4,10 @@
 #include <cstdio>
 #include <dirent.h>
 #include <iostream>
+#include <string.h>
 #include <sys/stat.h>
 #include <thread>
 #include <unistd.h>
-#include <string.h>
 
 // DB(str) creates a database instance given a certain directory for log files
 DB::DB(const std::string &directory) {
@@ -206,7 +206,8 @@ void DB::copy_file(const std::string &src, const std::string &dst) {
 	dst_file.close();
 }
 
-// merge_file takes in two sstables as merges the values in them to form a single sstable
+// merge_file takes in two sstables as merges the values in them to form a
+// single sstable
 void DB::merge_file(const std::string &file1, const std::string &file2) {
 	auto full_path1 = m_directory + "/" + file1;
 	auto full_path2 = m_directory + "/" + file2;
@@ -264,17 +265,16 @@ void DB::merge_file(const std::string &file1, const std::string &file2) {
 }
 
 // has_extension checks if str has a given suffix
-bool has_extension(const char *str, const char *suffix)
-{
-		if (!str || !suffix)
-				return false;
+bool has_extension(const char *str, const char *suffix) {
+	if (!str || !suffix)
+		return false;
 
-		size_t lenstr = strlen(str);
-		size_t lensuffix = strlen(suffix);
+	size_t lenstr = strlen(str);
+	size_t lensuffix = strlen(suffix);
 
-		if (lensuffix >  lenstr)
-				return false;
-		return strncmp(str + lenstr - lensuffix, suffix, lensuffix) == 0;
+	if (lensuffix > lenstr)
+		return false;
+	return strncmp(str + lenstr - lensuffix, suffix, lensuffix) == 0;
 }
 
 // parse_directory takes care of parsing existing files in the directory.
@@ -282,8 +282,7 @@ void DB::parse_directory() {
 	DIR *dir;
 	struct dirent *diread;
 
-
-	if ((dir = opendir("/")) != nullptr) {
+	if ((dir = opendir(m_directory.c_str())) != nullptr) {
 		while ((diread = readdir(dir)) != nullptr) {
 			// check if file is sstable.
 			if (has_extension(diread->d_name, ".ss")) {
@@ -294,4 +293,68 @@ void DB::parse_directory() {
 		}
 		closedir(dir);
 	}
+}
+
+// compact_n_files compacts n sstables into a single combined sstable. It also
+// removes all of the older files.
+void DB::compact_n_files(int32_t n) {
+	if (n > (int32_t)m_sstables.size())
+		return;
+
+	std::string most_recent_file;
+	std::map<std::string, std::string> final_values;
+
+	for (auto it = m_sstables.rbegin(); it != m_sstables.rend() - n; ++it) {
+		most_recent_file = it->get_filename();
+		auto values = it->get_all_values(it->get_filename());
+
+		for (auto &kv_pair : values)
+			final_values[kv_pair.key] = kv_pair.value;
+	}
+
+	m_ss_mutex.lock();
+	int original_size = (int)m_sstables.size();
+	for (int i = original_size - 1; i >= original_size - n; --i) {
+		// remove the old files
+		remove(m_sstables[i].get_filename().c_str());
+
+		// remove from the array
+		m_sstables.erase(m_sstables.begin() + i);
+	}
+
+	// create the compacted sstable and add it to the vector
+	auto sstable = SSTable();
+	sstable.write_map(final_values);
+	m_sstables.push_back(sstable);
+
+	m_ss_mutex.unlock();
+}
+
+int64_t get_file_size(const char *filename) {
+	struct stat st;
+	if (stat(filename, &st) != 0) {
+		return 0;
+	}
+
+	return (int64_t)st.st_size;
+}
+
+std::vector<std::string> DB::get_compactable_files() const {
+	std::vector<std::string> res;
+	DIR *dir;
+	struct dirent *diread;
+
+	if ((dir = opendir(m_directory.c_str())) != nullptr) {
+		while ((diread = readdir(dir)) != nullptr) {
+			// check if file is sstable.
+			if (has_extension(diread->d_name, ".ss")) {
+				if (get_file_size(diread->d_name) < max_sstable_size) {
+					res.push_back(diread->d_name);
+				}
+			}
+		}
+		closedir(dir);
+	}
+
+	return res;
 }

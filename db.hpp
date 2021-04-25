@@ -10,6 +10,8 @@
 #include <thread>
 #include <vector>
 
+inline constexpr int64_t max_sstable_size = 20 * 1024 * 1024;
+
 class DB {
 public:
 	std::string get(const std::string &key);
@@ -51,6 +53,10 @@ private:
 	// write the contents of the memtable flush queue into sstables
 	void write_flush_queue();
 	void flush_current_memtable();
+
+	void compact_n_files(int32_t n);
+
+	std::vector<std::string> get_compactable_files() const;
 
 	// find all the persistent log files and the sstables.
 	void parse_directory();
