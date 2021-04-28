@@ -22,7 +22,7 @@ void Memtable::put(const std::string &key, const std::string &value) {
 	// so the size of the memtable consists of the first 9 bytes, containing the
 	// value separator and the key and value lengths.
 	size += 9 + static_cast<int64_t>(key.length()) +
-								static_cast<int64_t>(value.length());
+					static_cast<int64_t>(value.length());
 }
 
 int32_t Memtable::write_to_log(const std::string &key,

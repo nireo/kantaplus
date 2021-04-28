@@ -36,7 +36,6 @@ std::vector<KVPair> SSTable::get_all_values(const std::string &path) {
 	in.open(path);
 	std::vector<unsigned char> bytes((std::istreambuf_iterator<char>(in)),
 																	 std::istreambuf_iterator<char>());
-
 	int64_t pos = 0;
 
 	for (;;) {
