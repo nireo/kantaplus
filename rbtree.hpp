@@ -8,8 +8,13 @@
 #include <string>
 
 struct KVPair {
-    std::string key;
-    std::string value;
+		std::string key;
+		std::string value;
+};
+
+enum Status {
+	OK,
+	ERROR
 };
 
 #endif //KANTAPLUS_RBTREE_HPP

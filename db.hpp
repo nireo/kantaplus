@@ -21,6 +21,7 @@ public:
 	void set_maximum_size(int64_t new_size);
 	void start();
 	int32_t get_flush_queue_size() const;
+	int32_t get_sstables_size() const;
 
 	// using the default directory of './kantaplus'
 	DB();

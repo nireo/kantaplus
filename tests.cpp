@@ -5,6 +5,7 @@
 #include <gtest/gtest.h>
 #include <string>
 #include <sys/stat.h>
+#include <unistd.h>
 
 // Demonstrate some basic assertions.
 TEST(MemtableTest, BasicOperations) {
@@ -88,4 +89,17 @@ TEST(DatabaseTest, LogPersistance) {
 	DB db2 = DB();
 	EXPECT_STREQ(db.get("hello").c_str(), "world");
 	EXPECT_STREQ(db.get("world").c_str(), "hello");
+}
+
+TEST(DatabaseTest, SSTablesCreated) {
+	DB db = DB();
+	db.start();
+	for (int i = 0; i < 500; ++i) {
+		db.put("key-" + std::to_string(i), "value-" + std::to_string(i));
+	}
+
+	// wait for the sstables to write
+	usleep(100);
+
+	EXPECT_NE(db.get_sstables_size(), 0);
 }

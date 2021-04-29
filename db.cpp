@@ -25,6 +25,8 @@ DB::DB(const std::string &directory) {
 	m_memtable = Memtable(directory);
 	m_sstables = std::vector<SSTable>();
 	m_flush_queue = std::vector<Memtable>();
+	m_running = false;
+	set_maximum_size(10000);
 }
 
 // DB() creates a database in a default directory of './kantadb'
@@ -41,6 +43,8 @@ DB::DB() {
 	m_memtable = Memtable("./kantadb");
 	m_sstables = std::vector<SSTable>();
 	m_flush_queue = std::vector<Memtable>();
+	m_running = false;
+	set_maximum_size(10000);
 }
 
 // Get finds a value from the database. It firstly checks the current memtable
@@ -147,8 +151,7 @@ void DB::del(const std::string &key) {
 // queue into sstables in a 'flush_thread'.
 void DB::start() {
 	m_running = true;
-
-	std::thread flush_thread([this] { write_flush_queue(); });
+	std::thread flush_thread(&DB::write_flush_queue, this);
 }
 
 // set_maximum_size sets maximum size of memtable in bytes
@@ -357,4 +360,8 @@ std::vector<std::string> DB::get_compactable_files() const {
 	}
 
 	return res;
+}
+
+int32_t DB::get_sstables_size() const {
+	return (int32_t)m_sstables.size();
 }

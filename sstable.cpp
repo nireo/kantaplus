@@ -3,7 +3,10 @@
 //
 
 #include "sstable.hpp"
+#include "rbtree.hpp"
 #include <bits/stdint-intn.h>
+#include <bits/stdint-uintn.h>
+#include <string>
 
 SSTable::SSTable() {
 	auto timestamp = std::chrono::duration_cast<std::chrono::microseconds>(
@@ -28,6 +31,11 @@ void SSTable::write_map(std::map<std::string, std::string> &mp) const {
 	if (!ofs) {
 		std::cout << "error while writing to file" << std::endl;
 	}
+}
+
+SSTableScanner SSTable::create_scanner() {
+	auto scanner = SSTableScanner(filename);
+	return scanner;
 }
 
 std::vector<KVPair> SSTable::get_all_values(const std::string &path) {
@@ -135,8 +143,47 @@ SSTableScanner::SSTableScanner(const std::string &filename) {
 	m_current = nullptr;
 	m_pos = (int64_t)0;
 	m_filename = filename;
+
+	std::ifstream in(filename, std::ios::in);
+	m_in = &in;
 }
 
-void SSTableScanner::next() {}
+// parse_metadata returns a pair containing the key length and the value length
+std::pair<uint32_t, uint32_t> parse_metadata(unsigned char metadata_buffer[9]) {
+	// the first byte is can be ignored
+	uint32_t u0 = metadata_buffer[1], u1 = metadata_buffer[2], u2 = metadata_buffer[3], u3 = metadata_buffer[4];
+	uint32_t key_length = u0 | (u1 << 8) | (u2 << 16) | (u3 << 24);
+
+	uint32_t u4 = metadata_buffer[5], u5 = metadata_buffer[6], u6 = metadata_buffer[7], u7 = metadata_buffer[8];
+	uint32_t val_length = u4 | (u5 << 8) | (u6 << 16) | (u7 << 24);
+
+	return std::make_pair(key_length, val_length);
+}
+
+void SSTableScanner::next() {
+	// read 9 bytes from the the file
+	unsigned char metadata_buffer[9];
+	m_in->read((char *)(&metadata_buffer[0]), 9);
+	auto lengths = parse_metadata(metadata_buffer);
+
+	auto key_length = lengths.first;
+	auto val_length = lengths.second;
+
+	unsigned char key_buffer[key_length];
+	m_in->read((char *)(&key_buffer[0]), key_length);
+
+	unsigned char val_buffer[key_length];
+	m_in->read((char *)(&val_buffer[0]), val_length);
+
+	KVPair *tmp_current;
+	tmp_current->key = std::string(reinterpret_cast<char const*>(key_buffer), key_length);
+	tmp_current->value = std::string(reinterpret_cast<char const*>(val_buffer), val_length);
+
+	m_current = tmp_current;
+}
 
 KVPair *SSTableScanner::get_current_pair() const { return m_current; }
+
+SSTableScanner::~SSTableScanner() {
+	m_in->close();
+}
