@@ -1,4 +1,5 @@
 #include "keydir.hpp"
+#include <cstdint>
 
 KeyDir::KeyDir() {
 	m_entries = std::unordered_map<std::string, KeyMeta>();
@@ -20,5 +21,17 @@ KeyMeta* KeyDir::get(const std::string& key) {
 void KeyDir::del(const std::string &key) {
 	m_lock.lock();
 	m_entries.erase(key);
+	m_lock.unlock();
+}
+
+void KeyDir::update_file_id(std::uint32_t oldID, std::uint32_t newID) {
+	m_lock.lock();
+
+	for (auto kv : m_entries) {
+		if (kv.second.file_id == oldID) {
+			kv.second.file_id = newID;
+		}
+	}
+
 	m_lock.unlock();
 }

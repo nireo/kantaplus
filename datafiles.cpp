@@ -1,7 +1,8 @@
 #include "datafiles.hpp"
+#include <cstdint>
 
-Datafile::Datafile(const std::string &path) {
-	m_filename = path;
+Datafile::Datafile(const std::string &dir, std::uint32_t timestamp) {
+	m_filename = dir + "/" + std::to_string(timestamp);
 }
 
 Status Datafile::insert(std::int64_t time_since_start, const std::string &key,
