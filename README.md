@@ -1,10 +1,16 @@
 # kantaplus
 
-A C++ implementation of [kantadb](https://github.com/nireo/kantadb). Not really a serious project I just wanted to practice C++.
+This is a key-value store inspired by [bitcask](https://riak.com/assets/bitcask-intro.pdf). It is not recommended for production use.
 
-## About
+## Pros & Cons
 
-This project is designed to be en embeddable database to be used as a library. It is based on LSM-trees.
+Pros:
+* Fast writes
+* Low latency
+
+Cons:
+* Since key metadata is held in memory it is quite memory intensive
+* Cannot hold billions of keys, since they use too much ram.
 
 ## Running tests
 
