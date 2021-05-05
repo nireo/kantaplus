@@ -16,6 +16,7 @@ public:
 private:
 	std::string m_filename;
 	FILE *fp;
+	std::int64_t current_position;
 };
 
 #endif // KANTAPLUS_DATAFILES_HPP

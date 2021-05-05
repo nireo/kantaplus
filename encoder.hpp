@@ -11,6 +11,7 @@ namespace Encoder {
 															 const std::string &value);
 
 	std::string decode_entry(std::vector<char> buffer);
+	std::vector<char> convert_uint32_to_bytes(std::uint32_t to_convert);
 }
 
 #endif
