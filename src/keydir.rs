@@ -47,6 +47,13 @@ impl Keydir {
 						Some(val) => Ok(val.clone()),
 				}
 		}
+
+		pub fn remove(&mut self, key: &[u8]) -> Result<(), &'static str> {
+				match self.entries.remove(key) {
+						Some(_) => Ok(()),
+						None => Err("key was not found in the key directory"),
+				}
+		}
 }
 
 #[cfg(test)]
@@ -68,5 +75,32 @@ mod tests {
 				assert_eq!(value.offset, 1);
 				assert_eq!(value.timestamp, 1);
 				assert_eq!(value.val_size, 1);
+		}
+
+		#[test]
+		fn cannot_delete_non_existing_key() {
+				let mut keydir = Keydir::new();
+
+				assert!(keydir.remove("hello".as_bytes()).is_err());
+		}
+
+		#[test]
+		fn delete_value() {
+				let mut keydir = Keydir::new();
+
+				let res = keydir.add("helloworld1".as_bytes(), 1, 1, 1, 1);
+				assert!(!res.is_err());
+
+				let res = keydir.add("helloworld2".as_bytes(), 1, 1, 1, 1);
+				assert!(!res.is_err());
+
+				assert!(!keydir.remove("helloworld1".as_bytes()).is_err());
+				assert!(!keydir.remove("helloworld2".as_bytes()).is_err());
+
+				let value = keydir.get("helloworld1".as_bytes());
+				assert!(value.is_err());
+
+				let value = keydir.get("helloworld2".as_bytes());
+				assert!(value.is_err());
 		}
 }

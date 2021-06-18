@@ -2,7 +2,10 @@ mod datafile;
 mod encoder;
 mod keydir;
 
-use std::fs;
+use std::{collections::HashMap, fs};
+
+use datafile::Datafile;
+use keydir::Keydir;
 
 #[derive(Clone)]
 pub struct Config {
@@ -11,6 +14,9 @@ pub struct Config {
 
 pub struct DB {
 		pub config: Config,
+		pub keydir: Keydir,
+		// mapping the ids into datafiles
+		pub manager: HashMap<u32, Datafile>,
 }
 
 impl Config {
@@ -30,6 +36,8 @@ impl DB {
 
 				Ok(Self {
 						config: conf.clone(),
+						keydir: Keydir::new(),
+						manager: HashMap::new(),
 				})
 		}
 }
