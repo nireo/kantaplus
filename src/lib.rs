@@ -5,7 +5,7 @@ mod keydir;
 use std::{collections::HashMap, fs};
 
 use datafile::Datafile;
-use keydir::Keydir;
+use keydir::{Keydir, KeydirEntry};
 
 #[derive(Clone)]
 pub struct Config {
@@ -17,6 +17,7 @@ pub struct DB {
 		pub keydir: Keydir,
 		// mapping the ids into datafiles
 		pub manager: HashMap<u32, Datafile>,
+		pub write_file: Datafile,
 }
 
 impl Config {
@@ -38,7 +39,19 @@ impl DB {
 						config: conf.clone(),
 						keydir: Keydir::new(),
 						manager: HashMap::new(),
+						write_file: Datafile::new(&conf.dir).unwrap(),
 				})
+		}
+
+		pub fn put(&mut self, key: Vec<u8>, value: Vec<u8>) -> Result<(), &'static str> {
+				let key_entry: KeydirEntry = match self.write_file.write(&key, value) {
+						Ok(entry) => entry,
+						Err(_) => return Err("could not write value into database"),
+				};
+
+				self.keydir.add_entry(&key, key_entry);
+
+				Ok(())
 		}
 }
 

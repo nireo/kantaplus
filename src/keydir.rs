@@ -2,8 +2,8 @@ use std::collections::BTreeMap;
 
 #[derive(Clone, Copy)]
 pub struct KeydirEntry {
-		pub file_id: u32,
-		pub val_size: u64,
+		pub file_id: u64,
+		pub val_size: u32,
 		pub offset: u64,
 		pub timestamp: u64,
 }
@@ -22,8 +22,8 @@ impl Keydir {
 		pub fn add(
 				&mut self,
 				key: &[u8],
-				vsize: u64,
-				file_id: u32,
+				vsize: u32,
+				file_id: u64,
 				offset: u64,
 				ts: u64,
 		) -> Result<(), &'static str> {
@@ -38,6 +38,10 @@ impl Keydir {
 				);
 
 				Ok(())
+		}
+
+		pub fn add_entry(&mut self, key: &[u8], entry: KeydirEntry) {
+				self.entries.insert(key.to_vec(), entry);
 		}
 
 		pub fn get(&self, key: &[u8]) -> Result<KeydirEntry, &'static str> {

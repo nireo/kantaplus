@@ -2,11 +2,11 @@ use std::io::BufRead;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 pub struct Entry {
-		timestamp: u64,
-		key_size: u32,
-		value_size: u32,
-		key: Vec<u8>,
-		value: Vec<u8>,
+		pub timestamp: u64,
+		pub key_size: u32,
+		pub value_size: u32,
+		pub key: Vec<u8>,
+		pub value: Vec<u8>,
 }
 
 impl Entry {
