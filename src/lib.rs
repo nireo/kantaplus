@@ -1,6 +1,7 @@
 mod datafile;
 mod encoder;
 mod keydir;
+mod hint;
 
 use std::{collections::HashMap, fs};
 

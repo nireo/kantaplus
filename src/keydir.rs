@@ -1,4 +1,5 @@
 use std::collections::BTreeMap;
+use std::io::BufRead;
 
 #[derive(Clone, Copy)]
 pub struct KeydirEntry {
@@ -6,6 +7,53 @@ pub struct KeydirEntry {
     pub val_size: u32,
     pub offset: u64,
     pub timestamp: u64,
+}
+
+impl KeydirEntry {
+    pub fn encode(&self, key: Vec<u8>) -> Vec<u8> {
+        let mut buffer = vec![];
+
+        // we don't need to encode the file id, since the datafile id is the same as the file in which the hints
+        // are stored in.
+        buffer.extend_from_slice(&self.timestamp.to_be_bytes());
+        buffer.extend_from_slice(&key.len().to_be_bytes());
+        buffer.extend_from_slice(&self.val_size.to_be_bytes());
+        buffer.extend_from_slice(&self.offset.to_be_bytes());
+        buffer.extend_from_slice(&key);
+
+        buffer
+    }
+
+    pub fn decode<R: BufRead>(r: &mut R, file_id: u64) -> Result<(Self, Vec<u8>), std::io::Error> {
+        let mut timestamp_buf = [0_u8; 8];
+        r.read_exact(&mut timestamp_buf)?;
+        let timestamp = u64::from_be_bytes(timestamp_buf);
+
+        let mut key_size_buf = [0_u8; 4];
+        r.read_exact(&mut key_size_buf)?;
+        let key_size = u32::from_be_bytes(key_size_buf);
+
+        let mut val_size_buf = [0_u8; 4];
+        r.read_exact(&mut val_size_buf)?;
+        let val_size = u32::from_be_bytes(val_size_buf);
+
+        let mut offset_buf = [0_u8; 8];
+        r.read_exact(&mut offset_buf)?;
+        let offset = u64::from_be_bytes(offset_buf);
+
+        let mut key_buf = vec![0_u8; key_size as usize];
+        r.read_exact(&mut key_buf)?;
+
+        Ok((
+            Self {
+                timestamp,
+                file_id,
+                offset,
+                val_size,
+            },
+            key_buf,
+        ))
+    }
 }
 
 pub struct Keydir {
