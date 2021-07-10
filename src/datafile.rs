@@ -1,5 +1,6 @@
 use std::fs::OpenOptions;
 use std::io::{BufReader, BufWriter, Seek, SeekFrom, Write};
+use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::encoder::{self, Entry};
@@ -9,6 +10,28 @@ pub struct Datafile {
     read_only: bool,
     pub id: u64,
     fp: std::fs::File,
+}
+
+#[derive(PartialEq)]
+pub enum FileType {
+    DataFile,
+    HintFile
+}
+
+pub fn parse_file_id(path: &str) -> (u64, FileType) {
+    // take the last file, such that we don't accidentally take
+    let filename = path.split("/").collect::<Vec<&str>>();
+    let filename = filename[filename.len() - 1];
+
+    let parts = filename.split(".").collect::<Vec<&str>>();
+    assert!(parts.len() == 2);
+
+    let mut file_type = FileType::DataFile;
+    if parts[1] == ".ht" {
+        file_type = FileType::HintFile;
+    }
+
+    (parts[0].parse::<u64>().unwrap(), file_type)
 }
 
 impl Datafile {
@@ -29,6 +52,21 @@ impl Datafile {
             read_only: false,
             fp: file,
             id,
+        })
+    }
+
+    // take file_id as param since this function is used when we already know the file id so no
+    // use in parsing it again.
+    pub fn new_read_only(path: &Path, file_id: u64) -> Result<Self, std::io::Error> {
+        let file = OpenOptions::new()
+            .read(true)
+            .open(path)
+            .unwrap();
+
+        Ok(Self {
+            read_only: true,
+            id: file_id,
+            fp: file,
         })
     }
 

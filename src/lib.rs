@@ -1,12 +1,13 @@
 mod datafile;
 mod encoder;
-mod keydir;
 mod hint;
+mod keydir;
 
-use std::{collections::HashMap, fs};
+use std::{collections::HashMap, fs, path::Path};
 
-use datafile::Datafile;
+use datafile::{Datafile, parse_file_id};
 use encoder::Entry;
+use hint::HintFile;
 use keydir::{Keydir, KeydirEntry};
 
 #[derive(Clone)]
@@ -31,15 +32,41 @@ impl Config {
 }
 
 impl DB {
-    pub fn new(conf: Config) -> Result<Self, String> {
-        let res = fs::create_dir(&conf.dir);
-        if res.is_err() {
-            return Err(String::from("could not create directory"));
+    pub fn new(conf: Config) -> Result<Self, std::io::Error> {
+        let mut keydir = Keydir::new();
+        let mut manager: HashMap<u64, Datafile> = HashMap::new();
+        let dir_path = Path::new(&conf.dir);
+
+        if dir_path.exists() {
+            // loop over the content, and parse the data.
+            for entry in fs::read_dir(dir_path)? {
+                let entry = entry?;
+                let path = entry.path();
+                let (file_id, file_type) = parse_file_id(path.as_path().to_str().unwrap());
+
+                if file_type == datafile::FileType::DataFile {
+                    manager.insert(file_id, Datafile::new_read_only(path.as_path(), file_id)?);
+                } else {
+                    // TODO parse hint file and
+                    let mut hint_file = HintFile::new(path.as_path(), file_id)?;
+                    loop {
+                        let entry = hint_file.next();
+                        if entry.is_err() {
+                            break;
+                        }
+
+                        let entry = entry.unwrap();
+                        keydir.add_entry(&entry.1, entry.0);
+                    }
+                }
+            }
+        } else {
+            fs::create_dir(&conf.dir)?;
         }
 
         Ok(Self {
             config: conf.clone(),
-            keydir: Keydir::new(),
+            keydir,
             manager: HashMap::new(),
             write_file: Datafile::new(&conf.dir).unwrap(),
         })
