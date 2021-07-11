@@ -10,7 +10,7 @@ pub struct KeydirEntry {
 }
 
 impl KeydirEntry {
-    pub fn encode(&self, key: Vec<u8>) -> Vec<u8> {
+    pub fn encode(&self, key: &[u8]) -> Vec<u8> {
         let mut buffer = vec![];
 
         // we don't need to encode the file id, since the datafile id is the same as the file in which the hints
@@ -19,7 +19,7 @@ impl KeydirEntry {
         buffer.extend_from_slice(&key.len().to_be_bytes());
         buffer.extend_from_slice(&self.val_size.to_be_bytes());
         buffer.extend_from_slice(&self.offset.to_be_bytes());
-        buffer.extend_from_slice(&key);
+        buffer.extend_from_slice(key);
 
         buffer
     }

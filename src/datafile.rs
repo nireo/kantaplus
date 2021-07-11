@@ -4,12 +4,16 @@ use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::encoder::{self, Entry};
+use crate::hint::HintFile;
 use crate::keydir::KeydirEntry;
 
 pub struct Datafile {
     read_only: bool,
     pub id: u64,
     fp: std::fs::File,
+
+    // we need the hint file such that we can write into it.
+    hint_file: Option<HintFile>,
 }
 
 #[derive(PartialEq)]
@@ -45,13 +49,15 @@ impl Datafile {
             .write(true)
             .create(true)
             .read(true)
-            .open(format!("{}/{}.df", directory, id))
-            .unwrap();
+            .open(format!("{}/{}.df", directory, id))?;
+
+        let hint_file = HintFile::new(directory, id)?;
 
         Ok(Self {
             read_only: false,
             fp: file,
             id,
+            hint_file: Some(hint_file),
         })
     }
 
@@ -67,6 +73,9 @@ impl Datafile {
             read_only: true,
             id: file_id,
             fp: file,
+            // we don't need the hint file in the read-only versions, since we don't write
+            // to the files.
+            hint_file: None,
         })
     }
 
@@ -81,6 +90,13 @@ impl Datafile {
     }
 
     pub fn write(&mut self, key: &[u8], value: Vec<u8>) -> Result<KeydirEntry, std::io::Error> {
+        if self.read_only {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                "cannot write into a read-only file."
+            ));
+        }
+
         let entry = encoder::Entry::new(key.to_vec(), value);
 
         let mut wr = BufWriter::new(&self.fp);
@@ -88,12 +104,16 @@ impl Datafile {
         wr.write_all(&entry.encode())?;
         wr.flush()?;
 
-        Ok(KeydirEntry {
+        // write into the hint file also.
+        let keydir_entry = KeydirEntry {
             file_id: self.id,
             timestamp: entry.timestamp,
             val_size: entry.value_size,
             offset,
-        })
+        };
+
+        self.hint_file.as_mut().unwrap().write_keydir_entry(&keydir_entry, &entry.key)?;
+        Ok(keydir_entry)
     }
 
     pub fn read_whole_entry_from_offset(&self, offset: u64) -> Result<Entry, std::io::Error> {
@@ -126,7 +146,7 @@ mod tests {
         assert!(!res.is_err());
 
         let paths = std::fs::read_dir("./tests").unwrap();
-        assert_eq!(paths.count(), 1);
+        assert_eq!(paths.count(), 2);
 
         let res = std::fs::remove_dir_all("./tests");
         assert!(!res.is_err());

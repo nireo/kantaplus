@@ -48,7 +48,7 @@ impl DB {
                     manager.insert(file_id, Datafile::new_read_only(path.as_path(), file_id)?);
                 } else {
                     // TODO parse hint file and
-                    let mut hint_file = HintFile::new(path.as_path(), file_id)?;
+                    let mut hint_file = HintFile::new_read_only(path.as_path(), file_id)?;
                     loop {
                         let entry = hint_file.next();
                         if entry.is_err() {
