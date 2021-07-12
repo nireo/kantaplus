@@ -37,7 +37,7 @@ impl DB {
         let mut manager: HashMap<u64, Datafile> = HashMap::new();
         let dir_path = Path::new(&conf.dir);
 
-        if dir_path.exists() {
+        if dir_path.is_dir() {
             // loop over the content, and parse the data.
             for entry in fs::read_dir(dir_path)? {
                 let entry = entry?;
@@ -56,6 +56,7 @@ impl DB {
                         }
 
                         let entry = entry.unwrap();
+                        println!("found entry: {}", String::from_utf8_lossy(&entry.1));
                         keydir.add_entry(&entry.1, entry.0);
                     }
                 }
@@ -67,7 +68,7 @@ impl DB {
         Ok(Self {
             config: conf.clone(),
             keydir,
-            manager: HashMap::new(),
+            manager,
             write_file: Datafile::new(&conf.dir).unwrap(),
         })
     }
@@ -153,6 +154,43 @@ mod tests {
         let entry = entry.unwrap();
 
         assert_eq!(String::from_utf8_lossy(&entry.value), "world");
+
+        let res = fs::remove_dir_all(path);
+        assert!(!res.is_err())
+    }
+
+    #[test]
+    fn test_persistance() {
+        let configuration: Config = Config::new("test_dir");
+        let path = std::path::Path::new("test_dir");
+        let db1 = DB::new(configuration);
+        if db1.is_err() {
+            println!("{}", db1.as_ref().err().unwrap());
+        }
+        assert!(!db1.is_err());
+        let mut db1 = db1.unwrap();
+
+        // write a fews entries into the database1
+        let err = db1.put("hello1".as_bytes().to_vec(), "world".as_bytes().to_vec());
+        assert!(!err.is_err());
+
+        let err = db1.put("hello2".as_bytes().to_vec(), "world".as_bytes().to_vec());
+        assert!(!err.is_err());
+
+        // lets create a similar configuration and database, and we should still find all of the values.
+        let configuration2 = Config::new("test_dir");
+        let db2 = DB::new(configuration2);
+        assert!(!db2.is_err());
+        let db2 = db2.unwrap();
+
+        let err = db2.get("hello2".as_bytes());
+        if err.is_err() {
+            println!("{}", err.as_ref().err().unwrap());
+        }
+        assert!(!err.is_err());
+
+        let err = db2.get("hello1".as_bytes());
+        assert!(!err.is_err());
 
         let res = fs::remove_dir_all(path);
         assert!(!res.is_err())

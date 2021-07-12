@@ -16,7 +16,7 @@ pub struct Datafile {
     hint_file: Option<HintFile>,
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Debug)]
 pub enum FileType {
     DataFile,
     HintFile
@@ -31,7 +31,7 @@ pub fn parse_file_id(path: &str) -> (u64, FileType) {
     assert!(parts.len() == 2);
 
     let mut file_type = FileType::DataFile;
-    if parts[1] == ".ht" {
+    if parts[1] == "ht" {
         file_type = FileType::HintFile;
     }
 
@@ -187,5 +187,14 @@ mod tests {
 
         let res = std::fs::remove_dir_all("./tests1");
         assert!(!res.is_err());
+    }
+
+    #[test]
+    fn test_file_id_parsing() {
+        let test_input = "./123helloworld/123123123.ht";
+
+        let (file_id, file_type) = parse_file_id(test_input);
+        assert_eq!(123123123, file_id);
+        assert_eq!(file_type, FileType::HintFile);
     }
 }

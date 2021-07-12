@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 use std::io::BufRead;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct KeydirEntry {
     pub file_id: u64,
     pub val_size: u32,
