@@ -2,6 +2,7 @@
 #define DB_H
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #define INPUT_1_SIZE 32
 #define INPUT_2_SIZE 255
@@ -39,6 +40,12 @@ typedef struct {
   uint32_t row_count;
   Pager *pager;
 } Table;
+
+typedef struct {
+  Table *table;
+  uint32_t row_num;
+  bool end_of_table;
+} Cursor;
 
 Table *db_open(const char *fname);
 

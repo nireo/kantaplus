@@ -48,9 +48,10 @@ static void *get_page(Pager *pager, uint32_t page_num) {
   return pager->pages[page_num];
 }
 
-static void *row_slot(Table *table, uint32_t row_count) {
+static void *cursor_slot(Cursor *cursor) {
+  uint32_t row_count = cursor->row_num;
   uint32_t page_number = row_count / ROWS_PER_PAGE;
-  void *page = get_page(table->pager, page_number);
+  void *page = get_page(cursor->table->pager, page_number);
 
   uint32_t row_offset = row_count % ROWS_PER_PAGE;
   uint32_t byte_offset = row_offset * ROW_SIZE;
@@ -146,4 +147,29 @@ void db_close(Table *table) {
   }
 
   free(pager);
+}
+
+Cursor *table_start(Table *table) {
+  Cursor *cursor = malloc(sizeof(Cursor));
+  cursor->table = table;
+  cursor->row_num = 0;
+  cursor->end_of_table = (table->row_count == 0);
+
+  return cursor;
+}
+
+Cursor *table_end(Table *table) {
+  Cursor *cursor = malloc(sizeof(Cursor));
+  cursor->table = table;
+  cursor->row_num = table->row_count;
+  cursor->end_of_table = true;
+
+  return cursor;
+}
+
+void cursor_advance(Cursor *cursor) {
+  cursor->row_num += 1;
+  if (cursor->row_num >= cursor->table->row_count) {
+    cursor->end_of_table = true;
+  }
 }
