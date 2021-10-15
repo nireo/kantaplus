@@ -167,9 +167,33 @@ Cursor *table_end(Table *table) {
   return cursor;
 }
 
+void *cursor_value(Cursor *cursor) {
+  uint32_t row_num = cursor->row_num;
+  uint32_t page_num = row_num / ROWS_PER_PAGE;
+  void *page = get_page(cursor->table->pager, page_num);
+  uint32_t row_offset = row_num % ROWS_PER_PAGE;
+  uint32_t byte_offset = row_offset * ROW_SIZE;
+
+  return page + byte_offset;
+}
+
 void cursor_advance(Cursor *cursor) {
   cursor->row_num += 1;
   if (cursor->row_num >= cursor->table->row_count) {
     cursor->end_of_table = true;
   }
 }
+
+uint32_t *leaf_node_num_cells(void *node) {
+  return node + LEAF_NODE_NUM_CELLS_OFFSET;
+}
+
+void *leaf_node_cell(void *node, uint32_t cell_num) {
+  return node + LEAF_NODE_HEADER_SIZE + cell_num * LEAF_NODE_CELL_SIZE;
+}
+
+uint32_t *leaf_node_key(void *node, uint32_t cell_num) {
+  return leaf_node_cell(node, cell_num) + LEAF_NODE_KEY_SIZE;
+}
+
+void initialize_leaf_node(void *node) { *leaf_node_num_cells(node) = 0; }
