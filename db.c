@@ -1,9 +1,12 @@
 #include "db.h"
 #include <stddef.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <sys/file.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/uio.h>
 
 // index related stuff
 #define INDEX_LEN_SIZE 4
@@ -255,4 +258,116 @@ char *db_get(void *h, const char *key) {
     err_dump("db_get: un_lock error");
 
   return ptr;
+}
+
+static int _db_find_and_lock(DB *db, const char *key, int writelock) {
+  off_t offset, nextoffset;
+
+  db->chain_offset = (_db_hash(db, key) * PTR_SIZE) + db->hash_offset;
+  db->ptr_offset = db->chain_offset;
+
+  if (writelock) {
+    if (writew_lock(db->index_fd, db->chain_offset, SEEK_SET, 1) < 0)
+      err_dump("_db_find_and_lock: writew_lock error");
+  } else {
+    if (readw_lock(db->index_fd, db->chain_offset, SEEK_SET, 1) < 0)
+      err_dump("_db_find_and_lock: readw_lock error");
+  }
+
+  offset = _db_read_ptr(db, db->ptr_offset);
+
+  while (offset != 0) {
+    nextoffset = _db_read_index(db, offset);
+    if (strcmp(db->index_buffer, key) == 0)
+      break;
+
+    db->ptr_offset = offset;
+    offset = nextoffset;
+  }
+
+  return offset == 0 ? -1 : 0;
+}
+
+static DBHASH _db_hash(DB *db, const char *key) {
+  DBHASH hval = 0;
+  char c;
+
+  for (int i = 1; (c = *key++) != 0; ++i) {
+    hval += c * i;
+  }
+
+  return hval % db->nhash;
+}
+
+static off_t _db_read_ptr(DB *db, off_t offset) {
+  char asciiptr[PTR_SIZE + 1];
+
+  if (lseek(db->index_fd, offset, SEEK_SET) == -1)
+    err_dump("_db_read_tr: lseek error to ptr field");
+
+  if (read(db->index_fd, asciiptr, PTR_SIZE) != PTR_SIZE)
+    err_dump("_db_readptr: read error of ptr field");
+
+  asciiptr[PTR_SIZE] = 0;
+  return atol(asciiptr);
+}
+
+static off_t _db_read_index(DB *db, off_t offset) {
+  ssize_t i;
+  char *ptr1, *ptr2;
+  char asciiptr[PTR_SIZE + 1], asciilen[INDEX_LEN_SIZE + 1];
+  struct iovec iov[2];
+
+  if ((db->index_offset = lseek(db->index_fd, offset,
+                                offset == 0 ? SEEK_CUR : SEEK_SET)) == -1)
+    err_dump("_db_read_index: lseek error");
+
+  iov[0].iov_base = asciiptr;
+  iov[0].iov_len = PTR_SIZE;
+  iov[1].iov_base = asciilen;
+  iov[1].iov_len = INDEX_LEN_SIZE;
+
+  if ((i = readv(db->index_fd, &iov[0], 2)) != PTR_SIZE + INDEX_LEN_SIZE) {
+    if (i == 0 && offset == 0)
+      return -1;
+
+    err_dump("_db_read_index: readv error of index record");
+  }
+
+  asciiptr[PTR_SIZE] = 0;
+  db->ptr_val = atol(asciiptr);
+
+  asciilen[INDEX_LEN_SIZE] = 0;
+  if ((db->index_length = atoi(asciilen)) < INDEX_LENGTH_MINIMUM ||
+      db->index_length > INDEX_LENGTH_MAXIMUM)
+    err_dump("_db_read_index: invalid length");
+
+  if ((i = read(db->index_fd, db->index_buffer, db->index_length)) !=
+      db->index_length)
+    err_dump("_db_read_index: read error of index record.");
+
+  if (db->index_buffer[db->index_length - 1] != NEWLN)
+    err_dump("_db_readidx: missing newline");
+
+  db->index_buffer[db->index_length - 1] = 0;
+
+  if ((ptr1 = strchr(db->index_buffer, SEPARATOR)) == NULL)
+    err_dump("_db_read_index: missing first separator");
+  *ptr1++ = 0;
+
+  if ((ptr2 = strchr(ptr1, SEPARATOR)) == NULL)
+    err_dump("_db_read_index: missing second separator");
+  *ptr2++ = 0;
+
+  if (strchr(ptr2, SEPARATOR) != NULL)
+    err_dump("_db_read_index: too many separators");
+
+  if ((db->data_offset = atol(ptr1)) < 0)
+    err_dump("_db_read_index: start offset < 0");
+
+  if ((db->data_length = atol(ptr2)) <= 0 ||
+      db->data_length > DATA_LENGTH_MAXIMUM)
+    err_dump("_db_read_index: invalid length");
+
+  return db->ptr_val;
 }
