@@ -2,6 +2,7 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <sys/file.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 
 // index related stuff
@@ -15,6 +16,31 @@
 #define NHASH_DEF 137
 #define FREE_OFF 0
 #define HASH_OFF PTR_SIZE
+
+#define read_lock(fd, offset, whence, len)                                     \
+  lock_reg((fd), F_SETLK, F_RDLCK, (offset), (whence), (len))
+
+#define readw_lock(fd, offset, whence, len)                                    \
+  lock_reg((fd), F_SETLKW, F_RDLCK, (offset), (whence), (len))
+
+#define write_lock(fd, offset, whence, len)                                    \
+  lock_reg((fd), F_SETLK, F_WRLCK, (offset), (whence), (len))
+
+#define writew_lock(fd, offset, whence, len)                                   \
+  lock_reg((fd), F_SETLKW, F_WRLCK, (offset), (whence), (len))
+
+#define un_lock(fd, offset, whence, len)                                       \
+  lock_reg((fd), F_SETLK, F_UNLCK, (offset), (whence), (len))
+
+int lock_reg(int fd, int cmd, int type, off_t offset, int whence, off_t len) {
+  struct flock lock;
+  lock.l_type = type;
+  lock.l_start = offset;
+  lock.l_whence = whence;
+  lock.l_len = len;
+
+  return (fcntl(fd, cmd, &lock));
+}
 
 typedef unsigned long DBHASH;
 typedef unsigned long COUNT;
@@ -146,7 +172,28 @@ void *db_open(const char *pathname, int oflag, ...) {
   }
 
   if ((oflag & (O_CREAT | O_TRUNC)) == (O_CREAT | O_TRUNC)) {
-    // TODO
+    if (writew_lock(db->index_fd, 0, SEEK_SET, 0) < 0)
+      err_dump("db_open: writew_lock error");
+
+    if (fstat(db->index_fd, &stat_buffer) < 0)
+      error("db_open: fstat error");
+
+    if (stat_buffer.st_size == 0) {
+      sprintf(asciiptr, "%*d", PTR_SIZE, 0);
+      hash[0] = 0;
+
+      for (i = 0; i < NHASH_DEF + 1; ++i) {
+        strcat(hash, asciiptr);
+      }
+      strcat(hash, "\n");
+
+      i = strlen(hash);
+      if (write(db->index_fd, hash, i) != i)
+        err_dump("db_open: index file init write error");
+    }
+
+    if (un_lock(db->index_fd, 0, SEEK_SET, 0) < 0)
+      err_dump("db_open: un_lock error");
   }
 
   db_to_start(db);
@@ -172,9 +219,7 @@ static DB *_db_alloc(int namelen) {
   return db;
 }
 
-void db_close(void *h) {
-  _db_free((DB*)h);
-}
+void db_close(void *h) { _db_free((DB *)h); }
 
 static void _db_free(DB *db) {
   if (db->index_fd >= 0)
@@ -192,4 +237,22 @@ static void _db_free(DB *db) {
   if (db->name != NULL)
     free(db->name);
   free(db);
+}
+
+char *db_get(void *h, const char *key) {
+  DB *db = h;
+  char *ptr;
+
+  if (_db_find_and_lock(db, key, 0) < 0) {
+    ptr = NULL;
+    ++db->count_get_error;
+  } else {
+    ptr = _db_readat(db);
+    ++db->count_get_ok;
+  }
+
+  if (un_lock(db->index_fd, db->chain_offset, SEEK_SET, 1) < 0)
+    err_dump("db_get: un_lock error");
+
+  return ptr;
 }
