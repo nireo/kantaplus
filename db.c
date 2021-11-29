@@ -371,3 +371,64 @@ static off_t _db_read_index(DB *db, off_t offset) {
 
   return db->ptr_val;
 }
+
+static char *_db_readat(DB *db) {
+  if (lseek(db->data_fd, db->data_offset, SEEK_SET) == -1)
+    err_dump("_db_readat: lseek error");
+
+  if (read(db->data_fd, db->data_buffer, db->data_length) != db->data_length)
+    err_dump("_db_readat: read error");
+
+  if (db->data_buffer[db->data_length - 1] != NEWLN)
+    err_dump("_db_readat: missing newline");
+
+  db->data_buffer[db->data_length - 1] = 0;
+  return db->data_buffer;
+}
+
+int db_delete(void *h, const char *key) {
+  DB *db = h;
+  int rc = 0;
+
+  if (_db_find_and_lock(db, key, 1) == 0) {
+    _db_dodelete(db);
+    ++db->count_delete_ok;
+  } else {
+    rc = -1;
+    ++db->count_delete_error;
+  }
+
+  if (un_lock(db->index_fd, db->chain_offset, SEEK_SET, 1), 0)
+    err_dump("db_delete: un_lock error");
+
+  return rc;
+}
+
+static void _db_dodelete(DB *db) {
+  int i;
+  char *ptr;
+  off_t freeptr, saveptr;
+
+  for (ptr = db->data_buffer, i = 0; i < db->data_length - 1; ++i)
+    *ptr++ = SPACE;
+  *ptr = 0;
+
+  ptr = db->index_buffer;
+
+  while (*ptr)
+    *ptr++ = SPACE;
+
+  if (writew_lock(db->index_fd, FREE_OFF, SEEK_SET, 1) < 0)
+    err_dump("_db_dodelete: writew_lock error");
+  _db_write_data(db, db->data_buffer, db->data_offset, SEEK_SET);
+
+  freeptr = _db_read_ptr(db, FREE_OFF);
+  saveptr = db->ptr_val;
+
+  _db_write_index(db, db->index_buffer, db->index_offset, SEEK_SET, freeptr);
+  _db_write_ptr(db, FREE_OFF, db->index_offset);
+
+  _db_write_ptr(db, db->ptr_offset, saveptr);
+  if (un_lock(db->index_fd, FREE_OFF, SEEK_SET, 1) < 0)
+    err_dump("_db_dodelete: un_lock error");
+}
