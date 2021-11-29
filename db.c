@@ -432,3 +432,82 @@ static void _db_dodelete(DB *db) {
   if (un_lock(db->index_fd, FREE_OFF, SEEK_SET, 1) < 0)
     err_dump("_db_dodelete: un_lock error");
 }
+
+static void _db_write_data(DB *db, const char *data, off_t offset, int whence) {
+  struct iovec iov[2];
+  static char newline = NEWLN;
+
+  if (whence == SEEK_END)
+    if (writew_lock(db->data_fd, 0, SEEK_SET, 0) < 0)
+      err_dump("_db_write_data: writew_lock error");
+
+  if ((db->data_offset = lseek(db->data_fd, offset, whence)) == -1)
+    err_dump("_db_write_data: lseek error");
+
+  db->data_length = strlen(data) + 1;
+
+  iov[0].iov_base = (char *)data;
+  iov[0].iov_len = db->data_length - 1;
+  iov[1].iov_base = &newline;
+  iov[1].iov_len = 1;
+
+  if (writev(db->data_fd, &iov[0], 2) != db->data_length)
+    err_dump("_db_write_data: writev error of data record");
+
+  if (whence == SEEK_END) {
+    if (un_lock(db->data_fd, 0, SEEK_SET, 0) < 0)
+      err_dump("_db_write_data: un_lock error");
+  }
+}
+
+static void _db_write_index(DB *db, const char *key, off_t offset, int whence,
+                            off_t ptrval) {
+  struct iovec iov[2];
+  char asciiptrlen[PTR_SIZE + INDEX_LEN_SIZE + 1];
+  int len;
+
+  if ((db->ptr_val = ptrval) < 0 || ptrval > PTR_MAX)
+    err_quit("_db_write_index: invalid ptr: %d", ptrval);
+
+  sprintf(db->index_buffer, "%s%c%lld%c%ld\n", key, SEPARATOR,
+          (long long)db->data_offset, SEPARATOR, (long)db->data_length);
+
+  len = strlen(db->index_buffer);
+  if (len < INDEX_LENGTH_MINIMUM || len > INDEX_LENGTH_MAXIMUM)
+    err_dump("_db_write_index: invalid length");
+  sprintf(asciiptrlen, "%*lld%*d", PTR_SIZE, (long long)ptrval, INDEX_LEN_SIZE,
+          len);
+
+  if (whence == SEEK_END) {
+    if (writew_lock(db->index_fd, ((db->nhash + 1) * PTR_SIZE) + 1, SEEK_SET,
+                    0) < 0)
+      err_dump("_db_write_index: writew_lock error");
+  }
+
+  if ((db->index_offset = lseek(db->index_fd, offset, whence)) == -1)
+    err_dump("_db_write_index: lseek error");
+  iov[0].iov_base = asciiptrlen;
+  iov[0].iov_len = PTR_SIZE + INDEX_LEN_SIZE;
+  iov[1].iov_base = db->index_buffer;
+  iov[1].iov_len = len;
+  if (writev(db->index_fd, &iov[0], 2) != PTR_SIZE + INDEX_LEN_SIZE + len)
+    err_dump("_db_write_index: writev error of index record");
+
+  if (whence == SEEK_END)
+    if (un_lock(db->index_fd, ((db->nhash + 1) * PTR_SIZE) + 1, SEEK_SET, 0) <
+        0)
+      err_dump("_db_write_index: un_lock error");
+}
+
+static void _db_write_ptr(DB *db, off_t offset, off_t ptrval) {
+  char asciiptr[PTR_SIZE + 1];
+  if (ptrval < 0 || ptrval > PTR_MAX)
+    err_quit("_db_writeptr: invalid ptr: %d", ptrval);
+  sprintf(asciiptr, "%*lld", PTR_SIZE, (long long)ptrval);
+
+  if (lseek(db->index_fd, offset, SEEK_SET) == -1)
+    err_dump("_db_writeptr: lseek error to ptr field");
+
+  if (write(db->index_fd, asciiptr, PTR_SIZE) != PTR_SIZE)
+    err_dump("_db_writeptr: write error of ptr field");
+}
