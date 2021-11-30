@@ -1,4 +1,5 @@
 #include "db.h"
+#include <asm-generic/errno-base.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -510,4 +511,69 @@ static void _db_write_ptr(DB *db, off_t offset, off_t ptrval) {
 
   if (write(db->index_fd, asciiptr, PTR_SIZE) != PTR_SIZE)
     err_dump("_db_writeptr: write error of ptr field");
+}
+
+int db_store(void *h, const char *key, const char *data, int flag) {
+  DB *db = h;
+  int rc, keylen, datalen;
+  off_t ptrval;
+
+  if (flag != DB_INSERT && flag != DB_REPLACE && flag != DB_STORE) {
+    errno = EINVAL;
+    return -1;
+  }
+
+  keylen = strlen(key);
+  datalen = strlen(data) + 1;
+
+  if (datalen < DATA_LENGTH_MINIMUM || datalen > DATA_LENGTH_MAXIMUM)
+    err_dump("db_store: invalid data length");
+
+  if (_db_find_and_lock(db, key, 1) < 0) {
+    if (flag == DB_REPLACE) {
+      rc = -1;
+      ++db->count_st_err;
+      errno = ENOENT;
+      goto doreturn;
+    }
+
+    ptrval = _db_read_ptr(db, db->chain_offset);
+    if (_db_find_free(db, keylen, datalen) < 0) {
+      _db_write_data(db, data, 0, SEEK_END);
+      _db_write_index(db, key, 0, SEEK_END, ptrval);
+
+      _db_write_ptr(db, db->chain_offset, db->index_offset);
+      ++db->count_st1;
+    } else {
+      _db_write_data(db, data, db->data_offset, SEEK_SET);
+      _db_write_index(db, key, db->index_offset, SEEK_SET, ptrval);
+      _db_write_ptr(db, db->chain_offset, db->index_offset);
+      ++db->count_st2;
+    }
+  } else {
+    if (flag == DB_INSERT) {
+      rc = 1;
+      ++db->count_st_err;
+      goto doreturn;
+    }
+
+    if (datalen != db->data_length) {
+      _db_dodelete(db);
+      ptrval = _db_read_ptr(db, db->chain_offset);
+      _db_write_data(db, data, 0, SEEK_END);
+      _db_write_index(db, key, 0, SEEK_END, ptrval);
+
+      _db_write_ptr(db, db->chain_offset, db->index_offset);
+      ++db->count_st3;
+    } else {
+      _db_write_data(db, data, db->data_offset, SEEK_SET);
+      ++db->count_st4;
+    }
+  }
+
+  rc = 0;
+doreturn:
+  if (un_lock(db->index_fd, db->chain_offset, SEEK_SET, 1) < 0)
+    err_dump("db_store: un_lock error");
+  return rc;
 }
