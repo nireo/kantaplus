@@ -577,3 +577,80 @@ doreturn:
     err_dump("db_store: un_lock error");
   return rc;
 }
+
+static int _db_find_free(DB *db, int keylen, int datalen) {
+  int rc;
+  off_t offset, nextoffset, saveoffset;
+
+  if (writew_lock(db->index_fd, FREE_OFF, SEEK_SET, 1) < 0) {
+    err_dump("_db_find_free: writew_lock error");
+  }
+
+  saveoffset = FREE_OFF;
+  offset = _db_read_ptr(db, saveoffset);
+
+  while (offset != 0) {
+    nextoffset = _db_read_index(db, offset);
+    if (strlen(db->index_buffer) == keylen && db->data_length == datalen) {
+      break;
+    }
+
+    saveoffset = offset;
+    offset = nextoffset;
+  }
+
+  if (offset == 0) {
+    rc = -1;
+  } else {
+    _db_write_ptr(db, saveoffset, db->ptr_val);
+    rc = 0;
+  }
+
+  if (un_lock(db->index_fd, FREE_OFF, SEEK_SET, 1) < 0)
+    err_dump("_db_find_free: un_lock error");
+
+  return rc;
+}
+
+void db_to_start(void *h) {
+  DB *db = h;
+  off_t offset;
+
+  offset = (db->nhash + 1) * PTR_SIZE;
+
+  if ((db->index_offset = lseek(db->index_fd, offset + 1, SEEK_SET)) == -1)
+    err_dump("db_rewind: lseek error");
+}
+
+char *db_next_record(void *h, char *key) {
+  DB *db = h;
+  char c;
+  char *ptr;
+
+  if (readw_lock(db->index_fd, FREE_OFF, SEEK_SET, 1) < 0)
+    err_dump("db_next_record: readw_lock error");
+
+  do {
+    if (_db_read_index(db, 0) < 0) {
+      ptr = NULL;
+      goto doreturn;
+    }
+
+    ptr = db->index_buffer;
+    while ((c = *ptr++) != 0 && c == SPACE)
+      ;
+  } while (c == 0);
+
+  if (key != NULL) {
+    strcpy(key, db->index_buffer);
+  }
+  ptr = _db_readat(db);
+
+  ++db->count_next_record;
+
+doreturn:
+  if (un_lock(db->index_fd, FREE_OFF, SEEK_SET, 1) < 0)
+    err_dump("db_next_record: un_lock error");
+
+  return ptr;
+}
