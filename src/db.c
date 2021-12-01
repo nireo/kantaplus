@@ -1,5 +1,3 @@
-#include "db.h"
-#include <asm-generic/errno-base.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -9,7 +7,10 @@
 #include <sys/types.h>
 #include <sys/uio.h>
 
-// index related stuff
+#include "db.h"
+#include "lock.h"
+#include "errors.h"
+
 #define INDEX_LEN_SIZE 4
 #define SEPARATOR ':'
 #define SPACE ' '
@@ -20,31 +21,6 @@
 #define NHASH_DEF 137
 #define FREE_OFF 0
 #define HASH_OFF PTR_SIZE
-
-#define read_lock(fd, offset, whence, len)                                     \
-  lock_reg((fd), F_SETLK, F_RDLCK, (offset), (whence), (len))
-
-#define readw_lock(fd, offset, whence, len)                                    \
-  lock_reg((fd), F_SETLKW, F_RDLCK, (offset), (whence), (len))
-
-#define write_lock(fd, offset, whence, len)                                    \
-  lock_reg((fd), F_SETLK, F_WRLCK, (offset), (whence), (len))
-
-#define writew_lock(fd, offset, whence, len)                                   \
-  lock_reg((fd), F_SETLKW, F_WRLCK, (offset), (whence), (len))
-
-#define un_lock(fd, offset, whence, len)                                       \
-  lock_reg((fd), F_SETLK, F_UNLCK, (offset), (whence), (len))
-
-int lock_reg(int fd, int cmd, int type, off_t offset, int whence, off_t len) {
-  struct flock lock;
-  lock.l_type = type;
-  lock.l_start = offset;
-  lock.l_whence = whence;
-  lock.l_len = len;
-
-  return (fcntl(fd, cmd, &lock));
-}
 
 typedef unsigned long DBHASH;
 typedef unsigned long COUNT;
@@ -81,7 +57,6 @@ typedef struct {
   COUNT count_st_err;
 } DB;
 
-// internal functions
 static DB *_db_alloc(int);
 static void _db_dodelete(DB *);
 static int _db_find_and_lock(DB *, const char *, int);
@@ -94,48 +69,6 @@ static off_t _db_read_ptr(DB *, off_t);
 static void _db_write_data(DB *, const char *, off_t, int);
 static void _db_write_index(DB *, const char *, off_t, int, off_t);
 static void _db_write_ptr(DB *, off_t, off_t);
-
-static void err_doit(int errnoflag, int error, const char *fmt, va_list ap) {
-  char buf[4096];
-  vsnprintf(buf, 4096 - 1, fmt, ap);
-  if (errnoflag)
-    snprintf(buf + strlen(buf), 4096 - strlen(buf) - 1, ": %s",
-             strerror(error));
-  strcat(buf, "\n");
-  fflush(stdout);
-
-  fputs(buf, stderr);
-  fflush(NULL);
-}
-
-void error(const char *fmt, ...) {
-  va_list ap;
-  va_start(ap, fmt);
-  err_doit(1, errno, fmt, ap);
-
-  va_end(ap);
-  exit(1);
-}
-
-void err_quit(const char *fmt, ...) {
-  va_list ap;
-  va_start(ap, fmt);
-
-  err_doit(0, 0, fmt, ap);
-  va_end(ap);
-
-  exit(1);
-}
-
-void err_dump(const char *fmt, ...) {
-  va_list ap;
-  va_start(ap, fmt);
-  err_doit(1, errno, fmt, ap);
-  va_end(ap);
-
-  abort();
-  exit(1);
-}
 
 void *db_open(const char *pathname, int oflag, ...) {
   DB *db;

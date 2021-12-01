@@ -1,5 +1,5 @@
-#ifndef DB_H
-#define DB_H
+#ifndef _DB_H
+#define _DB_H
 
 #include <stdarg.h>
 #include <string.h>
