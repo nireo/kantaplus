@@ -8,8 +8,8 @@
 #include <sys/uio.h>
 
 #include "db.h"
-#include "lock.h"
 #include "errors.h"
+#include "lock.h"
 
 #define INDEX_LEN_SIZE 4
 #define SEPARATOR ':'
@@ -22,8 +22,8 @@
 #define FREE_OFF 0
 #define HASH_OFF PTR_SIZE
 
-typedef unsigned long DBHASH;
-typedef unsigned long COUNT;
+typedef unsigned long dbhash_t;
+typedef unsigned long count_t;
 
 typedef struct {
   int index_fd;
@@ -43,18 +43,18 @@ typedef struct {
   off_t ptr_offset;
   off_t chain_offset;
   off_t hash_offset;
-  DBHASH nhash;
+  dbhash_t nhash;
 
-  COUNT count_delete_ok;
-  COUNT count_delete_error;
-  COUNT count_get_ok;
-  COUNT count_get_error;
-  COUNT count_next_record;
-  COUNT count_st1;
-  COUNT count_st2;
-  COUNT count_st3;
-  COUNT count_st4;
-  COUNT count_st_err;
+  count_t count_delete_ok;
+  count_t count_delete_error;
+  count_t count_get_ok;
+  count_t count_get_error;
+  count_t count_next_record;
+  count_t count_st1;
+  count_t count_st2;
+  count_t count_st3;
+  count_t count_st4;
+  count_t count_st_err;
 } DB;
 
 static DB *_db_alloc(int);
@@ -62,7 +62,7 @@ static void _db_dodelete(DB *);
 static int _db_find_and_lock(DB *, const char *, int);
 static int _db_find_free(DB *, int, int);
 static void _db_free(DB *);
-static DBHASH _db_hash(DB *, const char *);
+static dbhash_t _db_hash(DB *, const char *);
 static char *_db_readat(DB *);
 static off_t _db_read_index(DB *, off_t);
 static off_t _db_read_ptr(DB *, off_t);
@@ -70,7 +70,7 @@ static void _db_write_data(DB *, const char *, off_t, int);
 static void _db_write_index(DB *, const char *, off_t, int, off_t);
 static void _db_write_ptr(DB *, off_t, off_t);
 
-void *db_open(const char *pathname, int oflag, ...) {
+kantadb_t db_open(const char *pathname, int oflag, ...) {
   DB *db;
   size_t i;
   int mode;
@@ -156,7 +156,7 @@ static DB *_db_alloc(int namelen) {
   return db;
 }
 
-void db_close(void *h) { _db_free((DB *)h); }
+void db_close(kantadb_t h) { _db_free((DB *)h); }
 
 static void _db_free(DB *db) {
   if (db->index_fd >= 0)
@@ -176,7 +176,7 @@ static void _db_free(DB *db) {
   free(db);
 }
 
-char *db_get(void *h, const char *key) {
+char *db_get(kantadb_t h, const char *key) {
   DB *db = h;
   char *ptr;
 
@@ -222,8 +222,8 @@ static int _db_find_and_lock(DB *db, const char *key, int writelock) {
   return offset == 0 ? -1 : 0;
 }
 
-static DBHASH _db_hash(DB *db, const char *key) {
-  DBHASH hval = 0;
+static dbhash_t _db_hash(DB *db, const char *key) {
+  dbhash_t hval = 0;
   char c;
 
   for (int i = 1; (c = *key++) != 0; ++i) {
@@ -320,7 +320,7 @@ static char *_db_readat(DB *db) {
   return db->data_buffer;
 }
 
-int db_delete(void *h, const char *key) {
+int db_delete(kantadb_t h, const char *key) {
   DB *db = h;
   int rc = 0;
 
@@ -446,7 +446,7 @@ static void _db_write_ptr(DB *db, off_t offset, off_t ptrval) {
     err_dump("_db_writeptr: write error of ptr field");
 }
 
-int db_store(void *h, const char *key, const char *data, int flag) {
+int db_store(kantadb_t h, const char *key, const char *data, int flag) {
   DB *db = h;
   int rc, keylen, datalen;
   off_t ptrval;
@@ -545,7 +545,7 @@ static int _db_find_free(DB *db, int keylen, int datalen) {
   return rc;
 }
 
-void db_to_start(void *h) {
+void db_to_start(kantadb_t h) {
   DB *db = h;
   off_t offset;
 
@@ -555,7 +555,7 @@ void db_to_start(void *h) {
     err_dump("db_rewind: lseek error");
 }
 
-char *db_next_record(void *h, char *key) {
+char *db_next_record(kantadb_t h, char *key) {
   DB *db = h;
   char c;
   char *ptr;
